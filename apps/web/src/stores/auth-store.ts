@@ -60,15 +60,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
       }
 
-      void supabase
-        .from('user_devices')
-        .insert({
+      void Promise.resolve(
+        supabase.from('user_devices').insert({
           user_id: user.id,
           user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
           last_active_at: new Date().toISOString(),
-        })
-        .then(() => undefined)
-        .catch(() => undefined);
+        }),
+      ).catch(() => undefined);
     } catch {
       set({ ready: true });
     }
