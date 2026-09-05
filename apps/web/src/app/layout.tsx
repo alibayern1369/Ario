@@ -45,10 +45,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = await getLocale();
   const messages = await getMessages();
   const dir = locale === 'en' ? 'ltr' : 'rtl';
+  const runtimePublic = publicEnv();
 
   return (
     <html lang={locale} dir={dir} suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__ARIO_PUBLIC__=${JSON.stringify(runtimePublic)};`,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(()=>{try{const t=localStorage.getItem('ario-theme')||'system';const d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){}})();`,

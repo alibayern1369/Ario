@@ -1,9 +1,18 @@
+export type PublicEnv = {
+  appUrl: string;
+  landingUrl: string;
+  supabaseUrl: string;
+  supabaseAnonKey: string;
+  vapidPublicKey: string;
+  stunUrls: string[];
+};
+
 function readEnv(name: string, fallback = '') {
   const value = process.env[name];
   return value && value.trim() ? value.trim() : fallback;
 }
 
-export function publicEnv() {
+function fromProcess(): PublicEnv {
   return {
     appUrl: readEnv('NEXT_PUBLIC_APP_URL', 'http://localhost:3000'),
     landingUrl: readEnv('NEXT_PUBLIC_LANDING_URL', 'http://localhost:3001'),
@@ -17,9 +26,27 @@ export function publicEnv() {
   };
 }
 
+/** Prefer runtime values injected by the server layout (works on Vercel without rebuild). */
+export function publicEnv(): PublicEnv {
+  if (typeof window !== 'undefined') {
+    const runtime = (window as Window & { __ARIO_PUBLIC__?: PublicEnv }).__ARIO_PUBLIC__;
+    if (runtime?.supabaseUrl && runtime?.supabaseAnonKey) return runtime;
+  }
+  return fromProcess();
+}
+
 export function hasSupabaseConfig() {
   const e = publicEnv();
   return e.supabaseUrl.length > 8 && e.supabaseAnonKey.length >= 20;
+}
+
+export function supabaseConfigError() {
+  const e = publicEnv();
+  const missing: string[] = [];
+  if (e.supabaseUrl.length <= 8) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+  if (e.supabaseAnonKey.length < 20) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  if (!missing.length) return null;
+  return `پیکربندی سوپابیس ناقص است (${missing.join(', ')}). در Vercel → Settings → Environment Variables مقدار بگذارید و Redeploy کنید.`;
 }
 
 export function serverSecrets() {

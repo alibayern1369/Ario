@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { hasSupabaseConfig } from '@/lib/env';
+import { hasSupabaseConfig, supabaseConfigError } from '@/lib/env';
 import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/lib/supabase/types';
 
@@ -37,6 +37,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   hydrate: async () => {
     if (!hasSupabaseConfig()) {
       set({ ready: true });
+      console.error(supabaseConfigError());
       return;
     }
     try {
