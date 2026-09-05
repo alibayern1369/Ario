@@ -1,0 +1,94 @@
+/* ARIO design tokens — original identity, not a Telegram clone.
+   Light and dark are independently designed. */
+
+:root {
+  color-scheme: light;
+
+  --ario-bg: #f4efe6;
+  --ario-bg-elevated: #fffaf2;
+  --ario-surface: rgba(255, 250, 242, 0.78);
+  --ario-surface-solid: #fffaf2;
+  --ario-ink: #1a1712;
+  --ario-ink-soft: #5c564c;
+  --ario-muted: #8a8276;
+  --ario-line: rgba(42, 34, 24, 0.1);
+  --ario-line-strong: rgba(42, 34, 24, 0.18);
+
+  --ario-accent: #1f4e46;
+  --ario-accent-hover: #173c36;
+  --ario-accent-soft: rgba(31, 78, 70, 0.1);
+  --ario-gold: #b8893a;
+  --ario-gold-soft: rgba(184, 137, 58, 0.14);
+
+  --ario-mine: #1f4e46;
+  --ario-mine-text: #f8f3ea;
+  --ario-theirs: #fffaf2;
+  --ario-theirs-text: #1a1712;
+
+  --ario-danger: #b42318;
+  --ario-danger-soft: rgba(180, 35, 24, 0.1);
+  --ario-success: #1b7a4a;
+  --ario-warning: #b7791f;
+
+  --ario-overlay: rgba(26, 23, 18, 0.42);
+  --ario-glass: rgba(255, 250, 242, 0.64);
+  --ario-glass-border: rgba(255, 255, 255, 0.45);
+  --ario-shadow: 0 10px 32px rgba(42, 34, 24, 0.08);
+  --ario-shadow-lg: 0 22px 50px rgba(42, 34, 24, 0.14);
+
+  --ario-radius-sm: 12px;
+  --ario-radius: 18px;
+  --ario-radius-lg: 26px;
+  --ario-radius-pill: 999px;
+
+  --ario-blur: 22px;
+  --ario-touch: 44px;
+  --ario-nav-h: 58px;
+  --ario-composer-h: 64px;
+
+  --ario-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ario-duration: 220ms;
+  --ario-font: "Vazirmatn", "Segoe UI", Tahoma, sans-serif;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ario-bg: #12100d;
+  --ario-bg-elevated: #1b1814;
+  --ario-surface: rgba(27, 24, 20, 0.76);
+  --ario-surface-solid: #1b1814;
+  --ario-ink: #f4efe6;
+  --ario-ink-soft: #c9c0b3;
+  --ario-muted: #8f877b;
+  --ario-line: rgba(244, 239, 230, 0.1);
+  --ario-line-strong: rgba(244, 239, 230, 0.16);
+
+  --ario-accent: #d7b56a;
+  --ario-accent-hover: #e4c888;
+  --ario-accent-soft: rgba(215, 181, 106, 0.12);
+  --ario-gold: #d7b56a;
+  --ario-gold-soft: rgba(215, 181, 106, 0.14);
+
+  --ario-mine: #2a5c54;
+  --ario-mine-text: #f8f3ea;
+  --ario-theirs: #24211c;
+  --ario-theirs-text: #f4efe6;
+
+  --ario-danger: #f97066;
+  --ario-danger-soft: rgba(249, 112, 102, 0.12);
+  --ario-success: #3dd68c;
+  --ario-warning: #f5c16c;
+
+  --ario-overlay: rgba(8, 7, 6, 0.62);
+  --ario-glass: rgba(27, 24, 20, 0.62);
+  --ario-glass-border: rgba(255, 255, 255, 0.06);
+  --ario-shadow: 0 10px 32px rgba(0, 0, 0, 0.32);
+  --ario-shadow-lg: 0 22px 50px rgba(0, 0, 0, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ario-duration: 1ms;
+  }
+}

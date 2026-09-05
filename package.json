@@ -1,0 +1,32 @@
+{
+  "name": "ario",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ARIO — private Persian super-messenger",
+  "packageManager": "pnpm@10.34.5",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter @ario/web dev",
+    "dev:landing": "pnpm --filter @ario/landing dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "pnpm --filter @ario/web test:e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@swc/core",
+      "@parcel/watcher",
+      "unrs-resolver"
+    ]
+  }
+}

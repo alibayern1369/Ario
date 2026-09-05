@@ -1,0 +1,149 @@
+@import "@fontsource-variable/vazirmatn";
+@import "@ario/shared/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ario-font: "Vazirmatn Variable", "Vazirmatn", "Segoe UI", Tahoma, sans-serif;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--ario-bg);
+  color: var(--ario-ink);
+  font-family: var(--ario-font);
+  font-feature-settings: "ss01";
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  padding:
+    env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ario-line-strong) transparent;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+[role="button"] {
+  min-height: var(--ario-touch);
+}
+
+.glass {
+  background: var(--ario-glass);
+  backdrop-filter: blur(var(--ario-blur));
+  -webkit-backdrop-filter: blur(var(--ario-blur));
+  border-bottom: 1px solid var(--ario-glass-border);
+}
+
+.sheet {
+  background: var(--ario-surface-solid);
+  border: 1px solid var(--ario-line);
+  box-shadow: var(--ario-shadow-lg);
+  border-radius: var(--ario-radius-lg) var(--ario-radius-lg) 0 0;
+}
+
+.ario-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--ario-touch);
+  padding: 0 1rem;
+  border-radius: var(--ario-radius-pill);
+  font-weight: 600;
+  transition: transform var(--ario-duration) var(--ario-ease),
+    background var(--ario-duration) var(--ario-ease);
+}
+
+.ario-btn:active {
+  transform: scale(0.97);
+}
+
+.ario-btn-primary {
+  background: var(--ario-accent);
+  color: #fffaf2;
+}
+
+[data-theme="dark"] .ario-btn-primary {
+  color: #1a1712;
+}
+
+.ario-btn-ghost {
+  background: var(--ario-accent-soft);
+  color: var(--ario-accent);
+}
+
+.ario-field {
+  width: 100%;
+  min-height: var(--ario-touch);
+  border-radius: var(--ario-radius);
+  border: 1px solid var(--ario-line-strong);
+  background: var(--ario-bg-elevated);
+  padding: 0.7rem 0.9rem;
+  color: var(--ario-ink);
+}
+
+.ario-field:focus {
+  outline: 2px solid var(--ario-gold);
+  outline-offset: 1px;
+}
+
+.ltr-isolate {
+  unicode-bidi: isolate;
+  direction: ltr;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--ario-accent-soft),
+    var(--ario-line),
+    var(--ario-accent-soft)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise var(--ario-duration) var(--ario-ease);
+}
