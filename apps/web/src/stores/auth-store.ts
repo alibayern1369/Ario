@@ -26,6 +26,8 @@ type AuthState = {
   refreshProfile: () => Promise<void>;
 };
 
+let authListenerBound = false;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   ready: false,
   userId: null,
@@ -37,55 +39,87 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ ready: true });
       return;
     }
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      set({ ready: true, userId: null, email: null, profile: null });
-      return;
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        set({ ready: true, userId: null, email: null, profile: null, privacy: null });
+        return;
+      }
+      set({ userId: user.id, email: user.email ?? null });
+      await get().refreshProfile();
+      set({ ready: true });
+
+      if (!authListenerBound) {
+        authListenerBound = true;
+        supabase.auth.onAuthStateChange((_event, session) => {
+          set({ userId: session?.user.id ?? null, email: session?.user.email ?? null });
+          if (session?.user) void get().refreshProfile();
+        });
+      }
+
+      void supabase
+        .from('user_devices')
+        .insert({
+          user_id: user.id,
+          user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+          last_active_at: new Date().toISOString(),
+        })
+        .then(() => undefined)
+        .catch(() => undefined);
+    } catch {
+      set({ ready: true });
     }
-    set({ userId: user.id, email: user.email ?? null });
-    await get().refreshProfile();
-    set({ ready: true });
-    supabase.auth.onAuthStateChange((_event, session) => {
-      set({ userId: session?.user.id ?? null, email: session?.user.email ?? null });
-      if (session?.user) void get().refreshProfile();
-    });
-    await supabase.from('user_devices').insert({
-      user_id: user.id,
-      user_agent: navigator.userAgent,
-      last_active_at: new Date().toISOString(),
-    });
   },
   signIn: async (email, password) => {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return error.message;
-    await get().hydrate();
-    if (get().profile?.status !== 'active') {
-      await supabase.auth.signOut();
-      set({ userId: null, profile: null });
-      return 'banned';
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) return error.message;
+
+      await get().hydrate();
+      const profile = get().profile;
+      if (!profile) {
+        return 'پروفایل شما ساخته نشده. مهاجرت دیتابیس را در Supabase اجرا کنید یا کاربر را دوباره بسازید.';
+      }
+      if (profile.status !== 'active') {
+        await supabase.auth.signOut();
+        set({ userId: null, profile: null });
+        return 'banned';
+      }
+      return null;
+    } catch (err) {
+      return err instanceof Error ? err.message : 'ورود ناموفق بود.';
     }
-    return null;
   },
   signUp: async (input) => {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email: input.email,
-      password: input.password,
-      options: {
-        data: { username: input.username, display_name: input.displayName },
-      },
-    });
-    if (error) return error.message;
-    await get().hydrate();
-    return null;
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signUp({
+        email: input.email.trim(),
+        password: input.password,
+        options: {
+          data: { username: input.username, display_name: input.displayName },
+        },
+      });
+      if (error) return error.message;
+      await get().hydrate();
+      return null;
+    } catch (err) {
+      return err instanceof Error ? err.message : 'ثبت‌نام ناموفق بود.';
+    }
   },
   signOut: async () => {
-    if (hasSupabaseConfig()) await createClient().auth.signOut();
-    set({ userId: null, email: null, profile: null, privacy: null });
+    try {
+      if (hasSupabaseConfig()) await createClient().auth.signOut();
+    } finally {
+      set({ userId: null, email: null, profile: null, privacy: null, ready: true });
+    }
   },
   refreshProfile: async () => {
     const id = get().userId;
@@ -95,6 +129,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       supabase.from('profiles').select('*').eq('id', id).maybeSingle(),
       supabase.from('privacy_settings').select('*').eq('user_id', id).maybeSingle(),
     ]);
-    set({ profile: profile as Profile | null, privacy: privacy as Privacy | null });
+    set({ profile: (profile as Profile | null) ?? null, privacy: (privacy as Privacy | null) ?? null });
   },
 }));
