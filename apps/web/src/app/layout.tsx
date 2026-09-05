@@ -22,7 +22,13 @@ export const metadata: Metadata = {
     icon: '/branding/logo.svg',
     apple: '/icons/apple-touch-icon.png',
   },
-  metadataBase: new URL(publicEnv().appUrl),
+  metadataBase: (() => {
+    try {
+      return new URL(publicEnv().appUrl);
+    } catch {
+      return new URL('http://localhost:3000');
+    }
+  })(),
 };
 
 export const viewport: Viewport = {

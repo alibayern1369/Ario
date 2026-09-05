@@ -20,9 +20,11 @@ export async function getLandingContent(): Promise<LandingPayload> {
 }
 
 export function appUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const value = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  return value || 'http://localhost:3000';
 }
 
 export function siteUrl() {
-  return process.env.NEXT_PUBLIC_LANDING_URL ?? 'http://localhost:3001';
+  const value = process.env.NEXT_PUBLIC_LANDING_URL?.trim();
+  return value || 'http://localhost:3001';
 }
