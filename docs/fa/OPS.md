@@ -87,18 +87,16 @@ npx web-push generate-vapid-keys
   یا `Authorization: Bearer $CRON_SECRET`
 - پیشنهاد زمان: هر ۱۵ دقیقه
 
-نمونهٔ `vercel.json` (اختیاری):
+**محدودیت Hobby:** روی پلن رایگان Vercel فقط cron روزانه مجاز است؛
+عبارت‌هایی مثل `*/15 * * * *` یا `*/1 * * * *` باعث **شکست خودِ دیپلوی** می‌شوند.
+برای اجرای مکرر روی Hobby از یکی از این‌ها استفاده کنید:
 
-```json
-{
-  "crons": [
-    { "path": "/api/cron/expire-stories", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/publish-scheduled", "schedule": "* * * * *" }
-  ]
-}
-```
+1. Edge Function سوپابیس + Schedule (روش پیشنهادی زیرین)
+2. scheduler خارجی (cron-job.org / GitHub Actions) که همان URL را با هدر secret صدا بزند
+3. ارتقا به Pro اگر حتماً Vercel Cron می‌خواهید
 
-اگر از Vercel Cron استفاده می‌کنید، همان `CRON_SECRET` را در handler چک می‌کنید؛ Vercel ممکن است هدر خودش را بفرستد — در آن صورت scheduler خارجی با هدر صریح ساده‌تر است، یا Cron Job را به Edge Function بزنید.
+فایل `apps/web/vercel.json` عمداً `crons` خالی دارد تا دیپلوی Hobby نشکند.
+مسیرهای `/api/cron/*` همچنان با `CRON_SECRET` کار می‌کنند.
 
 ### ب) Edge Function سوپابیس
 
