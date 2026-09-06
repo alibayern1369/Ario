@@ -16,7 +16,16 @@ export async function POST(req: Request) {
     );
   }
 
-  const admin = createAdminClient();
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return NextResponse.json(
+      { error: 'پیکربندی سرور ناقص است (SERVICE_ROLE).' },
+      { status: 500 },
+    );
+  }
+
   const { data: setting } = await admin
     .from('system_settings')
     .select('value')
@@ -26,7 +35,6 @@ export async function POST(req: Request) {
     setting && typeof setting.value === 'object' && setting.value && 'mode' in setting.value
       ? String((setting.value as { mode?: string }).mode)
       : 'open';
-  // Only an explicit "closed" setting blocks self-registration.
   if (mode === 'closed') {
     return NextResponse.json({ error: 'registration_closed' }, { status: 403 });
   }
@@ -73,18 +81,55 @@ export async function POST(req: Request) {
     if (/already|registered|exists/i.test(msg)) {
       return NextResponse.json({ error: 'username_taken' }, { status: 409 });
     }
+    if (/password|weak|short/i.test(msg)) {
+      return NextResponse.json({ error: 'رمز عبور قابل قبول نیست. حداقل ۴ کاراکتر وارد کنید.' }, { status: 400 });
+    }
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  // Belt-and-suspenders: ensure first account is owner even if trigger skipped metadata.
-  if (makeOwner && created.data.user) {
-    await admin.from('profiles').update({ role: 'owner' }).eq('id', created.data.user.id);
+  const userId = created.data.user.id;
+  const role = makeOwner ? 'owner' : 'member';
+
+  // Always ensure profile exists (trigger may be missing on hosted DB).
+  const { error: profileError } = await admin.from('profiles').upsert(
+    {
+      id: userId,
+      username,
+      display_name: displayName,
+      role,
+      status: 'active',
+    },
+    { onConflict: 'id' },
+  );
+
+  if (profileError) {
+    // Username collision on upsert — try unique suffix then fail cleanly.
+    const fallbackUser = `${username}_${userId.replace(/-/g, '').slice(0, 6)}`;
+    const retry = await admin.from('profiles').upsert(
+      {
+        id: userId,
+        username: fallbackUser,
+        display_name: displayName,
+        role,
+        status: 'active',
+      },
+      { onConflict: 'id' },
+    );
+    if (retry.error) {
+      await admin.auth.admin.deleteUser(userId);
+      return NextResponse.json(
+        { error: 'ساخت پروفایل ناموفق بود. دوباره تلاش کنید.' },
+        { status: 500 },
+      );
+    }
   }
+
+  await admin.from('privacy_settings').upsert({ user_id: userId }, { onConflict: 'user_id' });
 
   return NextResponse.json({
     ok: true,
     email,
     username,
-    role: makeOwner ? 'owner' : 'member',
+    role,
   });
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/shell/app-shell';
 import { ChatList } from '@/components/chats/chat-list';
+import { PasswordField } from '@/components/ui/password-field';
 import { createClient } from '@/lib/supabase/client';
 import { formatDateTime } from '@/lib/format';
 import { useAuthStore } from '@/stores/auth-store';
@@ -35,7 +36,14 @@ export default function SecurityPage() {
             setPassword('');
           }}
         >
-          <input className="ario-field" type="password" placeholder="رمز تازه" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <PasswordField
+            value={password}
+            onChange={setPassword}
+            placeholder="رمز تازه"
+            autoComplete="new-password"
+            minLength={4}
+            required
+          />
           <button className="ario-btn ario-btn-primary w-full">به‌روزرسانی رمز</button>
         </form>
         <h2 className="pt-4 font-bold">دستگاه‌های فعال</h2>

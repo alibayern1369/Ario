@@ -30,34 +30,46 @@ export default function PeoplePage() {
   const [q, setQ] = useState('');
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!me) return;
     setLoading(true);
+    setError(null);
     void createClient()
       .from('profiles')
       .select('id,username,display_name,avatar_path,bio')
       .eq('status', 'active')
-      .then(({ data }) => {
-        setPeople((data ?? []).filter((p) => p.id !== me));
+      .neq('id', me)
+      .order('display_name', { ascending: true })
+      .limit(200)
+      .then(({ data, error: err }) => {
+        if (err) {
+          setError('بارگذاری افراد ممکن نشد.');
+          setPeople([]);
+        } else {
+          setPeople((data ?? []) as Person[]);
+        }
         setLoading(false);
       });
   }, [me]);
 
   const needle = q.trim().replace(/^@/, '').toLowerCase();
-  const filtered = people.filter(
-    (p) =>
-      !needle ||
-      p.display_name.includes(q.trim()) ||
-      p.username.toLowerCase().includes(needle),
-  );
+  const filtered = people.filter((p) => {
+    if (!needle) return true;
+    return (
+      p.display_name.toLowerCase().includes(needle) ||
+      p.username.toLowerCase().includes(needle)
+    );
+  });
 
   return (
     <AppShell sidebar={<ChatList />}>
       <div className="mx-auto max-w-xl px-4 py-6 pb-24">
         <h1 className="mb-1 text-2xl font-bold">افراد</h1>
         <p className="mb-4 text-sm text-soft">
-          مخاطبین همان کاربرانی هستند که در آریو ثبت‌نام کرده‌اند. با نام یا{' '}
-          <span className="ltr-isolate">@username</span> جستجو کنید، یا از «گفتگوی تازه» گفتگوی خصوصی شروع کنید.
+          همه کسانی که در آریو ثبت‌نام کرده‌اند اینجا دیده می‌شوند. با نام یا{' '}
+          <span className="ltr-isolate">@username</span> جستجو کنید و گفتگو را شروع کنید.
         </p>
         <input
           className="ario-field mb-4"
@@ -68,6 +80,7 @@ export default function PeoplePage() {
           autoCorrect="off"
           enterKeyHint="search"
         />
+        {error ? <p className="mb-3 text-sm text-[var(--ario-danger)]">{error}</p> : null}
         {loading ? (
           <div className="skeleton h-24" />
         ) : filtered.length === 0 ? (
@@ -75,8 +88,8 @@ export default function PeoplePage() {
             title={people.length === 0 ? 'هنوز کسی جز شما نیست' : 'کسی با این جستجو پیدا نشد'}
             body={
               people.length === 0
-                ? 'از دیگران بخواهید در آریو ثبت‌نام کنند؛ بعد اینجا و در جستجو پیدایشان می‌کنید.'
-                : 'نام کامل یا نام کاربری را دقیق‌تر وارد کنید. می‌توانید از صفحهٔ جستجو هم استفاده کنید.'
+                ? 'از دیگران بخواهید ثبت‌نام کنند. بعد از ساخت حساب، اینجا و در «گفتگوی تازه» پیدایشان می‌کنید.'
+                : 'نام یا نام کاربری را دقیق‌تر وارد کنید.'
             }
           />
         ) : (

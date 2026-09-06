@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const body = z
     .object({
       email: z.string().email(),
-      password: z.string().min(8),
+      password: z.string().min(4),
       username: usernameSchema,
       displayName: z.string().min(1).max(48),
     })

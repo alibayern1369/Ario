@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { loginSchema, registerSchema } from '@ario/shared';
 import { ArioWordmark } from '@/components/brand/logo';
+import { PasswordField } from '@/components/ui/password-field';
 import { useAuthStore } from '@/stores/auth-store';
 import { createClient } from '@/lib/supabase/client';
 import { hasSupabaseConfig } from '@/lib/env';
@@ -40,7 +41,6 @@ export default function LoginPage() {
           data && typeof data.value === 'object' && data.value && 'mode' in data.value
             ? String((data.value as { mode?: string }).mode)
             : 'open';
-        // Self-registration stays available unless admin explicitly closes it.
         setRegistrationOpen(policy !== 'closed');
       });
   }, []);
@@ -62,11 +62,7 @@ export default function LoginPage() {
           return;
         }
         if (err) {
-          setError(
-            err.includes('Invalid') || err.includes('invalid')
-              ? 'نام کاربری یا رمز نادرست است.'
-              : err,
-          );
+          setError(err);
           return;
         }
         window.location.assign(next.startsWith('/') ? next : '/');
@@ -154,26 +150,22 @@ export default function LoginPage() {
             required
           />
         )}
-        <input
-          className="ario-field"
-          type="password"
+        <PasswordField
+          value={password}
+          onChange={setPassword}
           autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
           placeholder="رمز عبور"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
           required
-          minLength={mode === 'register' ? 8 : undefined}
+          minLength={mode === 'register' ? 4 : undefined}
         />
         {mode === 'register' && registrationOpen ? (
-          <input
-            className="ario-field"
-            type="password"
+          <PasswordField
+            value={confirmPassword}
+            onChange={setConfirmPassword}
             autoComplete="new-password"
             placeholder="تکرار رمز عبور"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            minLength={8}
+            minLength={4}
           />
         ) : null}
         {error ? <p className="text-sm text-[var(--ario-danger)]">{error}</p> : null}

@@ -9,7 +9,11 @@ export const usernameSchema = z
 
 export const displayNameSchema = z.string().trim().min(1).max(48);
 export const bioSchema = z.string().max(280);
-export const passwordSchema = z.string().min(8).max(128);
+export const passwordSchema = z
+  .string()
+  .min(4, 'رمز عبور حداقل ۴ کاراکتر باشد')
+  .max(128, 'رمز عبور خیلی طولانی است');
+
 
 export const loginSchema = z.object({
   /** Username or email */

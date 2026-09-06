@@ -12,6 +12,10 @@ function resolveAuthEmail(identifier: string): string {
   return authEmailFromUsername(value);
 }
 
+async function sleep(ms: number) {
+  await new Promise((r) => setTimeout(r, ms));
+}
+
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type Privacy = Database['public']['Tables']['privacy_settings']['Row'];
 
@@ -35,6 +39,7 @@ type AuthState = {
 };
 
 let authListenerBound = false;
+let deviceTouchAt = 0;
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   ready: false,
@@ -69,35 +74,53 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
       }
 
-      void Promise.resolve(
-        supabase.from('user_devices').insert({
-          user_id: user.id,
-          user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
-          last_active_at: new Date().toISOString(),
-        }),
-      ).catch(() => undefined);
+      // Touch device at most once per 10 minutes (avoid unbounded inserts).
+      const now = Date.now();
+      if (now - deviceTouchAt > 10 * 60 * 1000) {
+        deviceTouchAt = now;
+        void Promise.resolve(
+          supabase.from('user_devices').insert({
+            user_id: user.id,
+            user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+            last_active_at: new Date().toISOString(),
+          }),
+        ).catch(() => undefined);
+      }
     } catch {
       set({ ready: true });
     }
   },
   signIn: async (identifier, password) => {
+    const supabase = createClient();
     try {
-      const supabase = createClient();
       const email = resolveAuthEmail(identifier);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (error) return error.message;
+      if (error) {
+        const msg = error.message;
+        if (/Invalid|invalid|credentials/i.test(msg)) return 'نام کاربری یا رمز نادرست است.';
+        return msg;
+      }
 
       await get().hydrate();
+
+      // Profile trigger/upsert can lag briefly after signup.
+      for (let i = 0; i < 6 && !get().profile; i++) {
+        await sleep(250);
+        await get().refreshProfile();
+      }
+
       const profile = get().profile;
       if (!profile) {
-        return 'پروفایل شما ساخته نشده. مهاجرت دیتابیس را در Supabase اجرا کنید یا کاربر را دوباره بسازید.';
+        await supabase.auth.signOut();
+        set({ userId: null, email: null, profile: null, privacy: null, ready: true });
+        return 'پروفایل ساخته نشد. چند ثانیه بعد دوباره وارد شوید.';
       }
       if (profile.status !== 'active') {
         await supabase.auth.signOut();
-        set({ userId: null, profile: null });
+        set({ userId: null, email: null, profile: null, privacy: null, ready: true });
         return 'banned';
       }
       return null;
@@ -129,8 +152,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const email = body?.email ?? authEmailFromUsername(input.username);
-      const err = await get().signIn(email, input.password);
-      return err;
+      // Brief pause so Auth session + profile row are readable.
+      await sleep(300);
+      return await get().signIn(email, input.password);
     } catch (err) {
       return err instanceof Error ? err.message : 'ثبت‌نام ناموفق بود.';
     }

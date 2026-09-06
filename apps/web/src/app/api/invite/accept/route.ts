@@ -6,7 +6,7 @@ import { USERNAME_RE } from '@ario/shared';
 const bodySchema = z.object({
   token: z.string().min(8),
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string().min(4),
   username: z.string().regex(USERNAME_RE),
   displayName: z.string().min(1).max(80),
 });

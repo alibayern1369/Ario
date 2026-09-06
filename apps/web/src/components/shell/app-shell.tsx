@@ -32,7 +32,6 @@ export function AppShell({
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-[1600px] bg-bg">
-      {/* Desktop nav rail */}
       <nav
         className="glass-subtle sticky top-0 z-30 hidden h-[100dvh] w-nav-rail shrink-0 flex-col items-stretch gap-1 border-l border-[var(--ario-line)] px-2 py-4 md:flex"
         aria-label="main"
@@ -55,20 +54,17 @@ export function AppShell({
             );
           })}
         </div>
-        {staff ? (
-          <Link
-            href="/admin"
-            className="ario-rail-item border-t border-[var(--ario-line)] pt-2"
-            data-active={pathname.startsWith('/admin')}
-            aria-current={pathname.startsWith('/admin') ? 'page' : undefined}
-          >
-            <Shield size={22} strokeWidth={pathname.startsWith('/admin') ? 2.25 : 1.75} />
-            <span>{t('admin')}</span>
-          </Link>
-        ) : null}
+        <Link
+          href="/admin"
+          className="ario-rail-item border-t border-[var(--ario-line)] pt-2"
+          data-active={pathname.startsWith('/admin')}
+          aria-current={pathname.startsWith('/admin') ? 'page' : undefined}
+        >
+          <Shield size={22} strokeWidth={pathname.startsWith('/admin') ? 2.25 : 1.75} />
+          <span>{staff ? t('admin') : 'مدیریت'}</span>
+        </Link>
       </nav>
 
-      {/* Conversation list column */}
       {sidebar ? (
         <aside className="hidden h-[100dvh] w-chat-list shrink-0 flex-col border-l border-[var(--ario-line)] md:flex">
           {sidebar}
@@ -77,7 +73,6 @@ export function AppShell({
 
       <main className="relative min-w-0 flex-1">{children}</main>
 
-      {/* Mobile floating bottom nav */}
       <nav
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden"
         aria-label="main"
@@ -101,19 +96,6 @@ export function AppShell({
               </Link>
             );
           })}
-          {staff ? (
-            <Link
-              href="/admin"
-              className="ario-nav-item"
-              data-active={pathname.startsWith('/admin')}
-              aria-current={pathname.startsWith('/admin') ? 'page' : undefined}
-            >
-              <span className="ario-nav-icon-wrap">
-                <Shield size={22} strokeWidth={pathname.startsWith('/admin') ? 2.25 : 1.75} />
-              </span>
-              <span>{t('admin')}</span>
-            </Link>
-          ) : null}
         </div>
       </nav>
     </div>

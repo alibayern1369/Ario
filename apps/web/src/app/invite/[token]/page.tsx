@@ -2,6 +2,7 @@
 
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { PasswordField } from '@/components/ui/password-field';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
@@ -58,14 +59,13 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-        <input
-          className="ario-field"
-          type="password"
-          placeholder="رمز دلخواه"
+        <PasswordField
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={setPassword}
+          placeholder="رمز دلخواه"
+          autoComplete="new-password"
           required
-          minLength={8}
+          minLength={4}
         />
         <input
           className="ario-field ltr-isolate"

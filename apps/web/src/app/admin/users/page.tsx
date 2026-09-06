@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { PasswordField } from '@/components/ui/password-field';
 
 type User = {
   id: string;
@@ -16,7 +17,8 @@ export default function AdminUsers() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [password, setPassword] = useState('ArioTemp!123');
+  const [password, setPassword] = useState('ario1234');
+  const [formError, setFormError] = useState<string | null>(null);
 
   async function load() {
     const { data } = await createClient()
@@ -46,20 +48,29 @@ export default function AdminUsers() {
         className="mb-6 grid gap-2 md:grid-cols-2"
         onSubmit={async (e) => {
           e.preventDefault();
-          await fetch('/api/admin/users', {
+          setFormError(null);
+          const res = await fetch('/api/admin/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, username, displayName, password }),
           });
+          if (!res.ok) {
+            const body = (await res.json().catch(() => null)) as { error?: string } | null;
+            setFormError(body?.error ?? 'ساخت کاربر ناموفق بود.');
+            return;
+          }
           setEmail('');
+          setUsername('');
+          setDisplayName('');
           await load();
         }}
       >
         <input className="ario-field" placeholder="ایمیل" value={email} onChange={(e) => setEmail(e.target.value)} />
         <input className="ario-field" placeholder="نام کاربری" value={username} onChange={(e) => setUsername(e.target.value)} />
         <input className="ario-field" placeholder="نام" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-        <input className="ario-field" placeholder="رمز موقت" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <PasswordField value={password} onChange={setPassword} placeholder="رمز موقت" autoComplete="new-password" minLength={4} />
         <button className="ario-btn ario-btn-primary">ساخت کاربر</button>
+        {formError ? <p className="text-sm text-[var(--ario-danger)] md:col-span-2">{formError}</p> : null}
       </form>
       <ul className="space-y-2">
         {users.map((u) => (

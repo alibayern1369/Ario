@@ -99,13 +99,7 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (path.startsWith('/admin')) {
-      if (!staff) {
-        const url = request.nextUrl.clone();
-        url.pathname = '/';
-        return NextResponse.redirect(url);
-      }
-    }
+    // /admin is gated in the admin layout (shows bootstrap UI instead of a redirect loop).
   }
 
   return response;
