@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Paperclip, Send, Video } from 'lucide-react';
+import { Mic, Paperclip, Send, Video, X } from 'lucide-react';
 import { useChatStore, type MessageRow } from '@/stores/chat-store';
 import { useToastStore } from '@/stores/toast-store';
 import { uploadAndSend } from '@/lib/uploads';
@@ -53,31 +53,42 @@ export function Composer({
   }
 
   return (
-    <div className="glass border-t border-[var(--ario-line)] px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <div className="glass-medium border-t border-[var(--ario-glass-border)] px-ario-3 pt-ario-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       {reply || editing ? (
-        <div className="mb-2 flex items-center justify-between rounded-ario bg-accent-soft px-3 py-2 text-sm">
-          <span>{editing ? 'ویرایش پیام' : 'پاسخ'}</span>
-          <button onClick={onClear}>بستن</button>
+        <div className="mb-ario-2 flex items-center justify-between gap-ario-2 rounded-ario border border-[var(--ario-line)] bg-[var(--ario-accent-soft)] px-ario-3 py-ario-2">
+          <div className="min-w-0">
+            <div className="ario-type-meta text-accent">{editing ? 'ویرایش پیام' : 'پاسخ'}</div>
+            <p className="ario-type-caption truncate text-soft">
+              {(editing ?? reply)?.content?.slice(0, 80) || 'رسانه'}
+            </p>
+          </div>
+          <button type="button" className="ario-btn ario-btn-icon !min-h-9 !w-9" onClick={onClear} aria-label="بستن">
+            <X size={16} />
+          </button>
         </div>
       ) : null}
       {voice ? (
-        <VoiceRecorder
-          conversationId={conversationId}
-          onClose={() => {
-            setVoice(false);
-            setTyping(conversationId, 'off');
-          }}
-        />
+        <div className="rise rounded-ario-lg bg-[var(--ario-surface-elevated)] p-ario-2">
+          <VoiceRecorder
+            conversationId={conversationId}
+            onClose={() => {
+              setVoice(false);
+              setTyping(conversationId, 'off');
+            }}
+          />
+        </div>
       ) : videoNote ? (
-        <VideoNoteRecorder
-          conversationId={conversationId}
-          onClose={() => {
-            setVideoNote(false);
-            setTyping(conversationId, 'off');
-          }}
-        />
+        <div className="rise rounded-ario-lg bg-[var(--ario-surface-elevated)] p-ario-2">
+          <VideoNoteRecorder
+            conversationId={conversationId}
+            onClose={() => {
+              setVideoNote(false);
+              setTyping(conversationId, 'off');
+            }}
+          />
+        </div>
       ) : (
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-ario-2">
           <input
             ref={fileRef}
             type="file"
@@ -98,11 +109,17 @@ export function Composer({
               }
             }}
           />
-          <button className="ario-btn ario-btn-ghost px-3" onClick={() => fileRef.current?.click()} disabled={!canSend}>
+          <button
+            type="button"
+            className="ario-btn ario-btn-icon shrink-0"
+            onClick={() => fileRef.current?.click()}
+            disabled={!canSend}
+            aria-label="پیوست"
+          >
             <Paperclip size={18} />
           </button>
           <textarea
-            className="ario-field max-h-32 min-h-[44px] flex-1 resize-none"
+            className="ario-field ario-field-composer max-h-32 min-h-[44px] flex-1 resize-none"
             rows={1}
             value={text}
             disabled={!canSend}
@@ -117,14 +134,22 @@ export function Composer({
             }}
           />
           {text.trim() ? (
-            <button className="ario-btn ario-btn-primary px-3" onClick={() => void submit()} disabled={!canSend}>
+            <button
+              type="button"
+              className="ario-btn ario-btn-primary !min-h-11 !w-11 shrink-0 !px-0"
+              onClick={() => void submit()}
+              disabled={!canSend}
+              aria-label="ارسال"
+            >
               <Send size={18} />
             </button>
           ) : (
             <>
               <button
-                className="ario-btn ario-btn-ghost px-3"
+                type="button"
+                className="ario-btn ario-btn-icon shrink-0"
                 disabled={!canSend}
+                aria-label="پیام صوتی"
                 onClick={() => {
                   setTyping(conversationId, 'recording');
                   setVoice(true);
@@ -132,7 +157,13 @@ export function Composer({
               >
                 <Mic size={18} />
               </button>
-              <button className="ario-btn ario-btn-ghost px-3" disabled={!canSend} onClick={() => setVideoNote(true)}>
+              <button
+                type="button"
+                className="ario-btn ario-btn-icon shrink-0"
+                disabled={!canSend}
+                aria-label="ویدیو نوت"
+                onClick={() => setVideoNote(true)}
+              >
                 <Video size={18} />
               </button>
             </>

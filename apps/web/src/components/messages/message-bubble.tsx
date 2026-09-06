@@ -34,8 +34,8 @@ export function MessageBubble({
 
   if (message.deleted_for_everyone) {
     return (
-      <div className={`flex ${mine ? 'justify-start' : 'justify-end'} px-3`}>
-        <div className="rounded-ario bg-[var(--ario-accent-soft)] px-3 py-2 text-xs text-muted">
+      <div className={`flex ${mine ? 'justify-start' : 'justify-end'} px-ario-3`}>
+        <div className="ario-type-meta rounded-ario bg-[var(--ario-accent-soft)] px-ario-3 py-ario-2 text-muted">
           این پیام حذف شد
         </div>
       </div>
@@ -44,7 +44,7 @@ export function MessageBubble({
 
   return (
     <div
-      className={`group flex ${mine ? 'justify-start' : 'justify-end'} px-3`}
+      className={`group relative flex ${mine ? 'justify-start' : 'justify-end'} px-ario-3`}
       onContextMenu={(e) => {
         e.preventDefault();
         setMenu(true);
@@ -52,16 +52,28 @@ export function MessageBubble({
     >
       <button
         type="button"
-        className={`max-w-[82%] rounded-[20px] px-3 py-2 text-right shadow-sm ${
-          mine ? 'bg-mine text-[var(--ario-mine-text)]' : 'bg-theirs text-[var(--ario-theirs-text)]'
-        } ${grouped ? 'mt-0.5' : 'mt-2'}`}
+        className={`max-w-[82%] px-ario-3 py-ario-2 text-right ario-type-message ${
+          mine ? 'ario-bubble-mine' : 'ario-bubble-theirs'
+        } ${grouped ? 'mt-0.5' : 'mt-ario-2'} ${
+          message.localStatus === 'failed' ? 'ring-1 ring-[var(--ario-danger)]' : ''
+        }`}
         onClick={() => setMenu((v) => !v)}
       >
         {message.reply_to ? (
-          <div className="mb-1 border-r-2 border-gold pr-2 text-xs opacity-80">پاسخ</div>
+          <div
+            className={`mb-ario-2 border-r-2 pr-ario-2 ario-type-meta opacity-90 ${
+              mine ? 'border-white/50' : 'border-accent'
+            }`}
+          >
+            پاسخ
+          </div>
         ) : null}
         <MessageBody message={message} />
-        <div className="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-80">
+        <div
+          className={`mt-1 flex items-center justify-end gap-1 ario-type-meta ${
+            mine ? 'opacity-80' : 'text-muted'
+          }`}
+        >
           {message.edited_at ? <span>ویرایش‌شده</span> : null}
           <span>{formatTime(message.created_at)}</span>
           {mine ? <StatusIcon status={message.localStatus} /> : null}
@@ -74,7 +86,12 @@ export function MessageBubble({
                 return acc;
               }, {}),
             ).map(([emoji, count]) => (
-              <span key={emoji} className="rounded-full bg-black/10 px-1.5 text-xs">
+              <span
+                key={emoji}
+                className={`rounded-ario-pill px-1.5 ario-type-meta ${
+                  mine ? 'bg-black/15' : 'bg-[var(--ario-accent-soft)]'
+                }`}
+              >
                 {emoji} {count}
               </span>
             ))}
@@ -82,28 +99,82 @@ export function MessageBubble({
         ) : null}
       </button>
       {menu ? (
-        <div className="absolute z-30 mt-12 w-52 rounded-ario bg-[var(--ario-surface-solid)] p-2 shadow-ario-lg">
-          <div className="mb-2 flex flex-wrap gap-1">
+        <div className="glass-strong absolute z-30 mt-12 w-52 rounded-ario border border-[var(--ario-glass-border-strong)] p-ario-2 shadow-ario">
+          <div className="mb-ario-2 flex flex-wrap gap-1 border-b border-[var(--ario-line)] pb-ario-2">
             {REACTION_SET.map((e) => (
-              <button key={e} className="text-lg" onClick={() => void react(message.id, e)}>
+              <button
+                key={e}
+                type="button"
+                className="min-h-9 rounded-ario-sm px-1.5 text-lg transition hover:bg-accent-soft"
+                onClick={() => {
+                  void react(message.id, e);
+                  setMenu(false);
+                }}
+              >
                 {e}
               </button>
             ))}
           </div>
-          <MenuItem label="پاسخ" onClick={() => onReply(message)} />
+          <MenuItem
+            label="پاسخ"
+            onClick={() => {
+              onReply(message);
+              setMenu(false);
+            }}
+          />
           <MenuItem
             label="رونوشت"
-            onClick={() => void navigator.clipboard.writeText(message.content ?? '')}
+            onClick={() => {
+              void navigator.clipboard.writeText(message.content ?? '');
+              setMenu(false);
+            }}
           />
-          {mine ? <MenuItem label="ویرایش" onClick={() => onEdit(message)} /> : null}
-          <MenuItem label="هدایت" onClick={() => onForward(message)} />
-          <MenuItem label="سنجاق" onClick={() => void pin(message.id, !message.pinned)} />
-          <MenuItem label="حذف برای من" onClick={() => void delMe(message.id)} />
-          {mine ? <MenuItem label="حذف برای همه" onClick={() => void delAll(message.id)} /> : null}
+          {mine ? (
+            <MenuItem
+              label="ویرایش"
+              onClick={() => {
+                onEdit(message);
+                setMenu(false);
+              }}
+            />
+          ) : null}
+          <MenuItem
+            label="هدایت"
+            onClick={() => {
+              onForward(message);
+              setMenu(false);
+            }}
+          />
+          <MenuItem
+            label="سنجاق"
+            onClick={() => {
+              void pin(message.id, !message.pinned);
+              setMenu(false);
+            }}
+          />
+          <MenuItem
+            label="حذف برای من"
+            onClick={() => {
+              void delMe(message.id);
+              setMenu(false);
+            }}
+          />
+          {mine ? (
+            <MenuItem
+              label="حذف برای همه"
+              onClick={() => {
+                void delAll(message.id);
+                setMenu(false);
+              }}
+            />
+          ) : null}
           {message.localStatus === 'failed' ? (
             <MenuItem
               label="تلاش دوباره"
-              onClick={() => void retry(message.conversation_id, message.client_id ?? message.id)}
+              onClick={() => {
+                void retry(message.conversation_id, message.client_id ?? message.id);
+                setMenu(false);
+              }}
             />
           ) : null}
         </div>
@@ -122,7 +193,9 @@ function MessageBody({ message }: { message: MessageRow }) {
         {message.attachments.map((a) => (
           <AttachmentView key={a.id} attachment={a} />
         ))}
-        {message.content ? <p className="whitespace-pre-wrap break-words">{message.content}</p> : null}
+        {message.content ? (
+          <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        ) : null}
       </div>
     );
   }
@@ -152,7 +225,11 @@ function StatusIcon({ status }: { status?: MessageRow['localStatus'] }) {
 
 function MenuItem({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button className="block w-full rounded-xl px-2 py-2 text-right text-sm hover:bg-accent-soft" onClick={onClick}>
+    <button
+      type="button"
+      className="ario-type-caption block w-full rounded-ario-sm px-ario-2 py-ario-2 text-right text-ink hover:bg-accent-soft"
+      onClick={onClick}
+    >
       {label}
     </button>
   );

@@ -7,13 +7,13 @@
 
 html,
 body {
-  background: #f4efe6;
-  color: #1a1712;
+  background: var(--ario-bg);
+  color: var(--ario-ink);
   font-family: "Vazirmatn Variable", Vazirmatn, sans-serif;
 }
 
 .hero-glow {
   background:
-    radial-gradient(circle at 20% 10%, rgba(184, 137, 58, 0.18), transparent 40%),
-    radial-gradient(circle at 80% 0%, rgba(31, 78, 70, 0.16), transparent 42%);
+    radial-gradient(circle at 20% 10%, rgba(14, 165, 164, 0.14), transparent 40%),
+    radial-gradient(circle at 80% 0%, rgba(59, 91, 204, 0.12), transparent 42%);
 }

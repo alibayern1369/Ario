@@ -15,6 +15,7 @@ body {
   background: var(--ario-bg);
   color: var(--ario-ink);
   font-family: var(--ario-font);
+  font-size: var(--ario-text-body);
   font-feature-settings: "ss01";
   -webkit-tap-highlight-color: transparent;
 }
@@ -39,11 +40,83 @@ button,
   min-height: var(--ario-touch);
 }
 
-.glass {
+/* —— Typography —— */
+.ario-type-display {
+  font-size: var(--ario-text-display);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.ario-type-heading {
+  font-size: var(--ario-text-heading);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.ario-type-body {
+  font-size: var(--ario-text-body);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.ario-type-caption {
+  font-size: var(--ario-text-caption);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.ario-type-meta {
+  font-size: var(--ario-text-meta);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.ario-type-message {
+  font-size: var(--ario-text-message);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.ario-type-button {
+  font-size: var(--ario-text-button);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* —— Glass —— */
+.glass,
+.glass-medium {
   background: var(--ario-glass);
   backdrop-filter: blur(var(--ario-blur));
   -webkit-backdrop-filter: blur(var(--ario-blur));
-  border-bottom: 1px solid var(--ario-glass-border);
+  border-color: var(--ario-glass-border);
+}
+
+.glass-subtle {
+  background: var(--ario-glass-subtle);
+  backdrop-filter: blur(var(--ario-blur-sm));
+  -webkit-backdrop-filter: blur(var(--ario-blur-sm));
+  border-color: var(--ario-glass-border-subtle);
+}
+
+.glass-strong {
+  background: var(--ario-glass-strong);
+  backdrop-filter: blur(var(--ario-blur-lg));
+  -webkit-backdrop-filter: blur(var(--ario-blur-lg));
+  border-color: var(--ario-glass-border-strong);
+  box-shadow: var(--ario-shadow);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-medium,
+  .glass-subtle,
+  .glass-strong {
+    background: var(--ario-surface-solid);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 .sheet {
@@ -53,6 +126,7 @@ button,
   border-radius: var(--ario-radius-lg) var(--ario-radius-lg) 0 0;
 }
 
+/* —— Buttons —— */
 .ario-btn {
   display: inline-flex;
   align-items: center;
@@ -61,22 +135,31 @@ button,
   min-height: var(--ario-touch);
   padding: 0 1rem;
   border-radius: var(--ario-radius-pill);
+  font-size: var(--ario-text-button);
   font-weight: 600;
-  transition: transform var(--ario-duration) var(--ario-ease),
-    background var(--ario-duration) var(--ario-ease);
+  transition:
+    transform var(--ario-duration-fast) var(--ario-ease),
+    background var(--ario-duration) var(--ario-ease),
+    color var(--ario-duration) var(--ario-ease),
+    opacity var(--ario-duration) var(--ario-ease);
 }
 
 .ario-btn:active {
   transform: scale(0.97);
 }
 
-.ario-btn-primary {
-  background: var(--ario-accent);
-  color: #fffaf2;
+.ario-btn:disabled {
+  opacity: 0.45;
+  pointer-events: none;
 }
 
-[data-theme="dark"] .ario-btn-primary {
-  color: #1a1712;
+.ario-btn-primary {
+  background: var(--ario-accent);
+  color: var(--ario-accent-contrast);
+}
+
+.ario-btn-primary:hover {
+  background: var(--ario-accent-hover);
 }
 
 .ario-btn-ghost {
@@ -84,6 +167,25 @@ button,
   color: var(--ario-accent);
 }
 
+.ario-btn-icon {
+  width: var(--ario-touch);
+  padding: 0;
+  border-radius: var(--ario-radius-pill);
+  background: transparent;
+  color: var(--ario-ink-soft);
+}
+
+.ario-btn-icon:hover {
+  background: var(--ario-accent-soft);
+  color: var(--ario-accent);
+}
+
+.ario-btn-danger {
+  background: var(--ario-danger-soft);
+  color: var(--ario-danger);
+}
+
+/* —— Fields —— */
 .ario-field {
   width: 100%;
   min-height: var(--ario-touch);
@@ -92,11 +194,32 @@ button,
   background: var(--ario-bg-elevated);
   padding: 0.7rem 0.9rem;
   color: var(--ario-ink);
+  font-size: var(--ario-text-input);
 }
 
 .ario-field:focus {
-  outline: 2px solid var(--ario-gold);
+  outline: 2px solid var(--ario-accent);
   outline-offset: 1px;
+  border-color: transparent;
+}
+
+.ario-field-search {
+  border-radius: var(--ario-radius-pill);
+  background: var(--ario-surface-elevated);
+  border-color: transparent;
+}
+
+.ario-field-composer {
+  border-radius: var(--ario-radius-lg);
+  border: 1px solid var(--ario-line);
+  background: var(--ario-bg-elevated);
+  padding: 0.55rem 0.85rem;
+}
+
+.ario-field-composer:focus {
+  outline: 2px solid var(--ario-accent);
+  outline-offset: 0;
+  border-color: transparent;
 }
 
 .ltr-isolate {
@@ -113,6 +236,117 @@ button,
   );
   background-size: 200% 100%;
   animation: shimmer 1.2s ease-in-out infinite;
+  border-radius: var(--ario-radius);
+}
+
+/* Chat canvas */
+.ario-chat-canvas {
+  background: var(--ario-chat-wash);
+}
+
+.ario-divider {
+  height: 1px;
+  background: var(--ario-line);
+}
+
+.ario-unread-badge {
+  display: inline-flex;
+  min-width: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ario-radius-pill);
+  background: var(--ario-unread);
+  padding: 0 0.35rem;
+  color: #fff;
+  font-size: var(--ario-text-meta);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.ario-bubble-mine {
+  background: var(--ario-mine);
+  color: var(--ario-mine-text);
+  border-radius: var(--ario-radius-lg) var(--ario-radius-lg) var(--ario-radius-xs) var(--ario-radius-lg);
+  box-shadow: var(--ario-shadow-sm);
+}
+
+.ario-bubble-theirs {
+  background: var(--ario-theirs);
+  color: var(--ario-theirs-text);
+  border-radius: var(--ario-radius-lg) var(--ario-radius-lg) var(--ario-radius-lg) var(--ario-radius-xs);
+  box-shadow: var(--ario-shadow-sm);
+}
+
+[dir="ltr"] .ario-bubble-mine {
+  border-radius: var(--ario-radius-lg) var(--ario-radius-lg) var(--ario-radius-lg) var(--ario-radius-xs);
+}
+
+[dir="ltr"] .ario-bubble-theirs {
+  border-radius: var(--ario-radius-lg) var(--ario-radius-lg) var(--ario-radius-xs) var(--ario-radius-lg);
+}
+
+.ario-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 56px;
+  min-height: var(--ario-touch);
+  padding: 4px 8px;
+  border-radius: var(--ario-radius);
+  color: var(--ario-muted);
+  font-size: var(--ario-text-meta);
+  font-weight: 500;
+  transition:
+    color var(--ario-duration-fast) var(--ario-ease),
+    background var(--ario-duration-fast) var(--ario-ease),
+    transform var(--ario-duration-fast) var(--ario-ease);
+}
+
+.ario-nav-item:active {
+  transform: scale(0.96);
+}
+
+.ario-nav-item[data-active="true"] {
+  color: var(--ario-accent);
+}
+
+.ario-nav-item[data-active="true"] .ario-nav-icon-wrap {
+  background: var(--ario-accent-soft);
+}
+
+.ario-nav-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 28px;
+  border-radius: var(--ario-radius-sm);
+  transition: background var(--ario-duration-fast) var(--ario-ease);
+}
+
+.ario-rail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: var(--ario-touch);
+  padding: 8px 4px;
+  border-radius: var(--ario-radius);
+  color: var(--ario-muted);
+  font-size: var(--ario-text-meta);
+  font-weight: 500;
+  transition:
+    color var(--ario-duration-fast) var(--ario-ease),
+    background var(--ario-duration-fast) var(--ario-ease);
+}
+
+.ario-rail-item[data-active="true"] {
+  color: var(--ario-accent);
+  background: var(--ario-accent-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {

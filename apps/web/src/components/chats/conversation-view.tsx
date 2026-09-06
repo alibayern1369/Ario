@@ -114,34 +114,55 @@ export function ConversationView({ conversationId }: { conversationId: string })
 
   let lastDay = '';
 
+  const statusLine = typing.length
+    ? typing.some((t) => t.endsWith('recording'))
+      ? 'در حال ضبط صدا…'
+      : typing.some((t) => t.endsWith('uploading'))
+        ? 'در حال بارگذاری…'
+        : 'در حال نوشتن…'
+    : peerStatus;
+
   return (
-    <div className="flex h-[100dvh] flex-col">
-      <header className="glass sticky top-0 z-20 flex items-center gap-3 px-3 py-2">
-        <Link href="/" className="md:hidden">
-          <ArrowRight />
+    <div className="relative flex h-[100dvh] flex-col bg-bg">
+      <header className="glass-subtle sticky top-0 z-20 flex items-center gap-ario-2 border-b border-[var(--ario-glass-border-subtle)] px-ario-2 py-ario-2">
+        <Link href="/" className="ario-btn ario-btn-icon md:hidden" aria-label="بازگشت">
+          <ArrowRight size={20} />
         </Link>
-        <button className="flex min-w-0 flex-1 items-center gap-3" onClick={() => setInfo(true)}>
-          <Avatar
-            name={conv ? titleOf(conv) : '…'}
-            path={conv?.type === 'direct' ? conv.peer?.avatar_path : conv?.avatar_path}
-          />
-          <div className="min-w-0 text-right">
-            <div className="truncate font-bold">{conv ? titleOf(conv) : '…'}</div>
-            <div className="text-xs text-muted">
-              {typing.length
-                ? typing.some((t) => t.endsWith('recording'))
-                  ? 'در حال ضبط صدا…'
-                  : typing.some((t) => t.endsWith('uploading'))
-                    ? 'در حال بارگذاری…'
-                    : 'در حال نوشتن…'
-                : peerStatus}
+        <button
+          type="button"
+          className="flex min-h-touch min-w-0 flex-1 items-center gap-ario-3 rounded-ario px-1 text-right"
+          onClick={() => setInfo(true)}
+        >
+          <div className="relative shrink-0">
+            <Avatar
+              name={conv ? titleOf(conv) : '…'}
+              path={conv?.type === 'direct' ? conv.peer?.avatar_path : conv?.avatar_path}
+              size={40}
+            />
+            {conv?.type === 'direct' && online ? (
+              <span
+                className="absolute bottom-0 left-0 h-2.5 w-2.5 rounded-full border-2 border-[var(--ario-bg)] bg-online"
+                aria-hidden
+              />
+            ) : null}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate ario-type-caption font-bold text-ink">
+              {conv ? titleOf(conv) : '…'}
+            </div>
+            <div
+              className={`ario-type-meta truncate ${typing.length ? 'text-accent' : 'text-muted'}`}
+            >
+              {statusLine}
             </div>
           </div>
         </button>
         {conv?.peer ? (
-          <div className="flex">
+          <div className="flex shrink-0 items-center">
             <button
-              className="ario-btn ario-btn-ghost px-3"
+              type="button"
+              className="ario-btn ario-btn-icon"
+              aria-label="تماس صوتی"
               onClick={() =>
                 void startCall({
                   peerId: conv.peer!.id,
@@ -154,7 +175,9 @@ export function ConversationView({ conversationId }: { conversationId: string })
               <Phone size={18} />
             </button>
             <button
-              className="ario-btn ario-btn-ghost px-3"
+              type="button"
+              className="ario-btn ario-btn-icon"
+              aria-label="تماس تصویری"
               onClick={() =>
                 void startCall({
                   peerId: conv.peer!.id,
@@ -166,16 +189,29 @@ export function ConversationView({ conversationId }: { conversationId: string })
             >
               <Video size={18} />
             </button>
+            <button
+              type="button"
+              className="ario-btn ario-btn-icon"
+              aria-label="اطلاعات"
+              onClick={() => setInfo(true)}
+            >
+              <Info size={18} />
+            </button>
           </div>
         ) : (
-          <button className="ario-btn ario-btn-ghost px-3" onClick={() => setInfo(true)}>
+          <button
+            type="button"
+            className="ario-btn ario-btn-icon"
+            aria-label="اطلاعات"
+            onClick={() => setInfo(true)}
+          >
             <Info size={18} />
           </button>
         )}
       </header>
       <div
         ref={scroller}
-        className="relative flex-1 overflow-auto py-3"
+        className="ario-chat-canvas relative flex-1 overflow-auto py-ario-3"
         onScroll={(e) => {
           const el = e.currentTarget;
           setJump(el.scrollHeight - el.scrollTop - el.clientHeight > 240);
@@ -192,14 +228,20 @@ export function ConversationView({ conversationId }: { conversationId: string })
           const prev = messages[i - 1];
           const grouped = prev?.sender_id === m.sender_id && !showDay;
           return (
-            <div key={m.id}>
+            <div key={m.id} className="rise">
               {showDay ? (
-                <div className="my-3 text-center text-xs text-muted">
-                  <span className="rounded-full bg-[var(--ario-surface-solid)] px-3 py-1">{day}</span>
+                <div className="my-ario-3 text-center">
+                  <span className="ario-type-meta inline-block rounded-ario-pill bg-[var(--ario-surface-solid)] px-ario-3 py-1 text-muted shadow-ario-sm">
+                    {day}
+                  </span>
                 </div>
               ) : null}
               {m.id === firstUnread ? (
-                <div className="my-2 text-center text-xs text-gold">پیام‌های خوانده‌نشده</div>
+                <div className="my-ario-3 flex items-center gap-ario-3 px-ario-4">
+                  <span className="ario-divider flex-1" />
+                  <span className="ario-type-meta shrink-0 text-accent">پیام‌های خوانده‌نشده</span>
+                  <span className="ario-divider flex-1" />
+                </div>
               ) : null}
               <MessageBubble
                 message={m}
@@ -214,7 +256,8 @@ export function ConversationView({ conversationId }: { conversationId: string })
       </div>
       {jump ? (
         <button
-          className="ario-btn ario-btn-primary absolute bottom-24 left-4 z-20"
+          type="button"
+          className="ario-btn ario-btn-primary absolute bottom-28 left-4 z-20 shadow-ario ario-type-button"
           onClick={() => {
             scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' });
           }}

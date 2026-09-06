@@ -27,11 +27,11 @@ export function Avatar({
   const initials = name.trim().slice(0, 1);
   return (
     <div
-      className="relative shrink-0 overflow-hidden rounded-full bg-accent-soft text-accent"
+      className="relative shrink-0 overflow-hidden rounded-full bg-accent-soft text-accent shadow-ario-sm"
       style={{ width: size, height: size }}
     >
       {ring ? (
-        <span className="absolute -inset-0.5 rounded-full bg-[conic-gradient(from_180deg,#1f4e46,#b8893a,#1f4e46)]" />
+        <span className="absolute -inset-0.5 rounded-full bg-[conic-gradient(from_180deg,var(--ario-accent),var(--ario-cyan),var(--ario-accent))]" />
       ) : null}
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element

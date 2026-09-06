@@ -5,11 +5,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: '#f4efe6',
-        ink: '#1a1712',
-        accent: '#1f4e46',
-        gold: '#b8893a',
-        soft: '#5c564c',
+        bg: 'var(--ario-bg)',
+        ink: 'var(--ario-ink)',
+        accent: 'var(--ario-accent)',
+        gold: 'var(--ario-cyan)',
+        soft: 'var(--ario-ink-soft)',
       },
       fontFamily: { sans: ['Vazirmatn Variable', 'Vazirmatn', 'sans-serif'] },
     },
