@@ -37,26 +37,28 @@ export function AppShell({
         className="glass-subtle sticky top-0 z-30 hidden h-[100dvh] w-nav-rail shrink-0 flex-col items-stretch gap-1 border-l border-[var(--ario-line)] px-2 py-4 md:flex"
         aria-label="main"
       >
-        {items.map((item) => {
-          const active = isActive(pathname, item.href);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="ario-rail-item"
-              data-active={active}
-              aria-current={active ? 'page' : undefined}
-            >
-              <Icon size={22} strokeWidth={active ? 2.25 : 1.75} />
-              <span>{t(item.key)}</span>
-            </Link>
-          );
-        })}
+        <div className="flex flex-1 flex-col items-stretch gap-1">
+          {items.map((item) => {
+            const active = isActive(pathname, item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="ario-rail-item"
+                data-active={active}
+                aria-current={active ? 'page' : undefined}
+              >
+                <Icon size={22} strokeWidth={active ? 2.25 : 1.75} />
+                <span>{t(item.key)}</span>
+              </Link>
+            );
+          })}
+        </div>
         {staff ? (
           <Link
             href="/admin"
-            className="ario-rail-item"
+            className="ario-rail-item border-t border-[var(--ario-line)] pt-2"
             data-active={pathname.startsWith('/admin')}
             aria-current={pathname.startsWith('/admin') ? 'page' : undefined}
           >

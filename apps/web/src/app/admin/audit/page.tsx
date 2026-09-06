@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AppShell } from '@/components/shell/app-shell';
-import { ChatList } from '@/components/chats/chat-list';
 import { createClient } from '@/lib/supabase/client';
 import { formatDateTime } from '@/lib/format';
 
@@ -19,20 +17,18 @@ export default function AdminAudit() {
       .then(({ data }) => setRows((data ?? []) as Row[]));
   }, []);
   return (
-    <AppShell sidebar={<ChatList />}>
-      <div className="px-4 py-8">
-        <h1 className="mb-4 text-2xl font-bold">گزارش فعالیت مدیران</h1>
-        <ul className="space-y-2">
-          {rows.map((r) => (
-            <li key={r.id} className="rounded-ario bg-[var(--ario-surface-solid)] p-3 text-sm">
-              <div className="font-semibold">{r.action}</div>
-              <div className="text-muted">
-                {r.target} · {formatDateTime(r.created_at)}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </AppShell>
+    <div className="px-4 py-8">
+      <h1 className="mb-4 text-2xl font-bold">گزارش فعالیت مدیران</h1>
+      <ul className="space-y-2">
+        {rows.map((r) => (
+          <li key={r.id} className="rounded-ario bg-[var(--ario-surface-solid)] p-3 text-sm">
+            <div className="font-semibold">{r.action}</div>
+            <div className="text-muted">
+              {r.target} · {formatDateTime(r.created_at)}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

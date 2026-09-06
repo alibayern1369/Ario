@@ -26,7 +26,7 @@ export default function LoginPage() {
       : null,
   );
   const [busy, setBusy] = useState(false);
-  const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(true);
 
   useEffect(() => {
     if (!hasSupabaseConfig()) return;
@@ -39,8 +39,9 @@ export default function LoginPage() {
         const policy =
           data && typeof data.value === 'object' && data.value && 'mode' in data.value
             ? String((data.value as { mode?: string }).mode)
-            : 'invite';
-        setRegistrationOpen(policy === 'open');
+            : 'open';
+        // Self-registration stays available unless admin explicitly closes it.
+        setRegistrationOpen(policy !== 'closed');
       });
   }, []);
 

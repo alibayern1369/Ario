@@ -25,8 +25,9 @@ export async function POST(req: Request) {
   const mode =
     setting && typeof setting.value === 'object' && setting.value && 'mode' in setting.value
       ? String((setting.value as { mode?: string }).mode)
-      : 'invite';
-  if (mode !== 'open') {
+      : 'open';
+  // Only an explicit "closed" setting blocks self-registration.
+  if (mode === 'closed') {
     return NextResponse.json({ error: 'registration_closed' }, { status: 403 });
   }
 
@@ -45,6 +46,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'username_taken' }, { status: 409 });
   }
 
+  const { count: ownerCount } = await admin
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('role', 'owner');
+  const makeOwner = (ownerCount ?? 0) === 0;
+
   const displayName = displayNameFromParts(parsed.data.firstName, parsed.data.lastName);
   const email = authEmailFromUsername(username);
 
@@ -57,6 +64,7 @@ export async function POST(req: Request) {
       display_name: displayName,
       first_name: parsed.data.firstName.trim(),
       last_name: parsed.data.lastName.trim(),
+      ...(makeOwner ? { app_role: 'owner' } : {}),
     },
   });
 
@@ -68,9 +76,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
+  // Belt-and-suspenders: ensure first account is owner even if trigger skipped metadata.
+  if (makeOwner && created.data.user) {
+    await admin.from('profiles').update({ role: 'owner' }).eq('id', created.data.user.id);
+  }
+
   return NextResponse.json({
     ok: true,
     email,
     username,
+    role: makeOwner ? 'owner' : 'member',
   });
 }

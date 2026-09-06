@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AppShell } from '@/components/shell/app-shell';
-import { ChatList } from '@/components/chats/chat-list';
 import { createClient } from '@/lib/supabase/client';
 import { usePresenceStore } from '@/stores/presence-store';
 
@@ -39,37 +37,35 @@ export default function AdminHome() {
     ['گزارش باز', stats.reports],
   ] as const;
 
+  const links = [
+    ['/admin/users', 'کاربران'],
+    ['/admin/groups', 'گروه‌ها و کانال‌ها'],
+    ['/admin/reports', 'گزارش‌ها'],
+    ['/admin/settings', 'تنظیمات سیستم'],
+    ['/admin/ops', 'سلامت و دیباگ'],
+    ['/admin/landing', 'محتوای وب‌سایت'],
+    ['/admin/audit', 'گزارش فعالیت'],
+  ] as const;
+
   return (
-    <AppShell sidebar={<ChatList />}>
-      <div className="px-4 py-8">
-        <h1 className="text-2xl font-bold">پنل مدیریت</h1>
-        <p className="mt-1 text-sm text-soft">مدیران به متن گفتگوهای خصوصی دسترسی ندارند.</p>
-        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
-          {cards.map(([l, v]) => (
-            <div key={l} className="rounded-ario bg-[var(--ario-surface-solid)] p-4">
-              <div className="text-sm text-muted">{l}</div>
-              <div className="text-2xl font-bold">{v}</div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 grid gap-2 md:grid-cols-2">
-          {[
-            ['/admin/users', 'کاربران'],
-            ['/admin/groups', 'گروه‌ها و کانال‌ها'],
-            ['/admin/reports', 'گزارش‌ها'],
-            ['/admin/settings', 'تنظیمات سیستم'],
-            ['/admin/ops', 'سلامت و دیباگ'],
-            ['/admin/landing', 'محتوای وب‌سایت'],
-            ['/admin/audit', 'گزارش فعالیت'],
-          ].map(([href, label]) =>
-            href && label ? (
-              <Link key={href} href={href} className="rounded-ario bg-[var(--ario-surface-solid)] px-4 py-3">
-                {label}
-              </Link>
-            ) : null,
-          )}
-        </div>
+    <div className="px-4 py-8">
+      <h1 className="text-2xl font-bold">داشبورد مدیریت</h1>
+      <p className="mt-1 text-sm text-soft">مدیران به متن گفتگوهای خصوصی دسترسی ندارند.</p>
+      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
+        {cards.map(([l, v]) => (
+          <div key={l} className="rounded-ario bg-[var(--ario-surface-solid)] p-4">
+            <div className="text-sm text-muted">{l}</div>
+            <div className="text-2xl font-bold">{v}</div>
+          </div>
+        ))}
       </div>
-    </AppShell>
+      <div className="mt-6 grid gap-2 md:grid-cols-2">
+        {links.map(([href, label]) => (
+          <Link key={href} href={href} className="rounded-ario bg-[var(--ario-surface-solid)] px-4 py-3 font-medium">
+            {label}
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
