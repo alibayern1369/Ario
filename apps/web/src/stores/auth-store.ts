@@ -1,9 +1,16 @@
 'use client';
 
 import { create } from 'zustand';
+import { authEmailFromUsername } from '@ario/shared';
 import { hasSupabaseConfig, supabaseConfigError } from '@/lib/env';
 import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/lib/supabase/types';
+
+function resolveAuthEmail(identifier: string): string {
+  const value = identifier.trim();
+  if (value.includes('@')) return value;
+  return authEmailFromUsername(value);
+}
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type Privacy = Database['public']['Tables']['privacy_settings']['Row'];
@@ -15,12 +22,13 @@ type AuthState = {
   profile: Profile | null;
   privacy: Privacy | null;
   hydrate: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<string | null>;
+  signIn: (identifier: string, password: string) => Promise<string | null>;
   signUp: (input: {
-    email: string;
-    password: string;
+    firstName: string;
+    lastName: string;
     username: string;
-    displayName: string;
+    password: string;
+    confirmPassword: string;
   }) => Promise<string | null>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -72,11 +80,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ ready: true });
     }
   },
-  signIn: async (email, password) => {
+  signIn: async (identifier, password) => {
     try {
       const supabase = createClient();
+      const email = resolveAuthEmail(identifier);
       const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email,
         password,
       });
       if (error) return error.message;
@@ -98,29 +107,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   signUp: async (input) => {
     try {
-      const supabase = createClient();
-      const { data: setting } = await supabase
-        .from('system_settings')
-        .select('value')
-        .eq('key', 'registration_policy')
-        .maybeSingle();
-      const mode =
-        setting && typeof setting.value === 'object' && setting.value && 'mode' in setting.value
-          ? String((setting.value as { mode?: string }).mode)
-          : 'invite';
-      if (mode !== 'open') {
-        return 'ثبت‌نام آزاد غیرفعال است. از لینک دعوت استفاده کنید.';
-      }
-      const { error } = await supabase.auth.signUp({
-        email: input.email.trim(),
-        password: input.password,
-        options: {
-          data: { username: input.username, display_name: input.displayName },
-        },
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: input.firstName,
+          lastName: input.lastName,
+          username: input.username,
+          password: input.password,
+          confirmPassword: input.confirmPassword,
+        }),
       });
-      if (error) return error.message;
-      await get().hydrate();
-      return null;
+      const body = (await res.json().catch(() => null)) as { error?: string; email?: string } | null;
+      if (!res.ok) {
+        if (body?.error === 'registration_closed') {
+          return 'ثبت‌نام آزاد غیرفعال است. از لینک دعوت استفاده کنید.';
+        }
+        if (body?.error === 'username_taken') return 'این نام کاربری قبلاً گرفته شده است.';
+        if (body?.error === 'max_users') return 'ظرفیت کاربران تکمیل است.';
+        return body?.error ?? 'ثبت‌نام ناموفق بود.';
+      }
+
+      const email = body?.email ?? authEmailFromUsername(input.username);
+      const err = await get().signIn(email, input.password);
+      return err;
     } catch (err) {
       return err instanceof Error ? err.message : 'ثبت‌نام ناموفق بود.';
     }

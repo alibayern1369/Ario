@@ -4,6 +4,17 @@ export const MAX_USERS = 50;
 
 export const USERNAME_RE = /^[a-z0-9_]{3,32}$/;
 
+/** Synthetic Auth email for username-only signup (Supabase requires an email). */
+export const AUTH_EMAIL_DOMAIN = 'users.ario.local';
+
+export function authEmailFromUsername(username: string): string {
+  return `${username.trim().toLowerCase()}@${AUTH_EMAIL_DOMAIN}`;
+}
+
+export function displayNameFromParts(firstName: string, lastName: string): string {
+  return `${firstName.trim()} ${lastName.trim()}`.replace(/\s+/g, ' ').slice(0, 48);
+}
+
 export const DEFAULT_UPLOAD_LIMITS = {
   imageBytes: 12 * 1024 * 1024,
   videoBytes: 80 * 1024 * 1024,

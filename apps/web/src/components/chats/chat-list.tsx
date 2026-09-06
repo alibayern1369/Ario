@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { usePresenceStore } from '@/stores/presence-store';
 import { StoryRail } from '@/components/stories/story-rail';
 import { CreateConversation } from '@/components/chats/create-conversation';
+import { InstallHeaderControl } from '@/components/pwa/install-banner';
 
 export function ChatList() {
   const t = useTranslations('chats');
@@ -44,8 +45,9 @@ export function ChatList() {
     <div className="flex h-[100dvh] flex-col bg-bg">
       <header className="glass-subtle sticky top-0 z-20 border-b border-[var(--ario-glass-border-subtle)] px-ario-4 pb-ario-3 pt-ario-4">
         <div className="mb-ario-3 flex items-center justify-between gap-ario-2">
-          <h1 className="ario-type-heading">{archived ? t('archived') : t('title')}</h1>
-          <div className="flex items-center gap-0.5">
+          <h1 className="ario-type-heading min-w-0 truncate">{archived ? t('archived') : t('title')}</h1>
+          <div className="flex shrink-0 items-center gap-0.5">
+            <InstallHeaderControl />
             <Link href="/search" className="ario-btn ario-btn-icon" aria-label="جستجو">
               <Search size={18} />
             </Link>

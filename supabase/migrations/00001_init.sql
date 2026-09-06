@@ -558,7 +558,7 @@ create policy channel_views_select on public.channel_views for select to authent
   using (public.is_member((select conversation_id from public.messages where id = message_id), auth.uid()));
 
 insert into public.system_settings (key, value) values
-  ('registration_policy', '{"mode":"invite"}'),
+  ('registration_policy', '{"mode":"open"}'),
   ('maintenance_mode', '{"enabled":false,"message":""}'),
   ('feature_flags', '{"stories":true,"calls":true,"channels":true,"groups":true}'),
   ('upload_limits', '{"imageBytes":12582912,"videoBytes":83886080,"voiceBytes":16777216,"fileBytes":41943040}'),

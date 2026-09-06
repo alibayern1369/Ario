@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { CallOverlay } from '@/components/calls/call-overlay';
-import { InstallBanner } from '@/components/pwa/install-banner';
+import { PwaInstallProvider } from '@/components/pwa/install-banner';
 import { Toaster } from '@/components/ui/toaster';
 import { realtimeHub } from '@/lib/realtime/channel-manager';
 import { useAuthStore } from '@/stores/auth-store';
@@ -38,11 +38,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   }, [ready, userId]);
 
   return (
-    <>
+    <PwaInstallProvider>
       {children}
       <CallOverlay />
-      <InstallBanner />
       <Toaster />
-    </>
+    </PwaInstallProvider>
   );
 }

@@ -37,9 +37,12 @@ export async function updateSession(request: NextRequest) {
     /\.(?:svg|png|jpg|webp|webmanifest|js)$/.test(path);
   // Cron routes authenticate with CRON_SECRET inside the handler (no user session).
   const isCronApi = path.startsWith('/api/cron/');
+  // Public auth endpoints (self-register / invite accept) — handlers enforce their own gates.
+  const isPublicAuthApi =
+    path === '/api/auth/register' || path === '/api/invite/accept';
   const isApi = path.startsWith('/api/');
 
-  if (!user && !isPublic && !isAsset && !isCronApi) {
+  if (!user && !isPublic && !isAsset && !isCronApi && !isPublicAuthApi) {
     if (isApi) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
     }

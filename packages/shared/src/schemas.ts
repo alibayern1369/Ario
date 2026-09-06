@@ -12,11 +12,35 @@ export const bioSchema = z.string().max(280);
 export const passwordSchema = z.string().min(8).max(128);
 
 export const loginSchema = z.object({
+  /** Username or email */
+  identifier: z.string().trim().min(1).max(254),
+  password: z.string().min(1),
+});
+
+/** Legacy email login still accepted by some admin flows. */
+export const emailLoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
 
-export const registerSchema = z.object({
+export const namePartSchema = z.string().trim().min(1).max(32);
+
+export const registerSchema = z
+  .object({
+    firstName: namePartSchema,
+    lastName: namePartSchema,
+    username: usernameSchema,
+    password: passwordSchema,
+    confirmPassword: z.string().min(1),
+    inviteToken: z.string().min(8).optional(),
+  })
+  .refine((v) => v.password === v.confirmPassword, {
+    message: 'تکرار رمز با رمز عبور یکسان نیست',
+    path: ['confirmPassword'],
+  });
+
+/** @deprecated Prefer registerSchema; kept for invite/admin that still use displayName + email */
+export const registerWithEmailSchema = z.object({
   email: z.string().email(),
   password: passwordSchema,
   username: usernameSchema,
