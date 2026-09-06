@@ -2,12 +2,21 @@
 
 import { create } from 'zustand';
 import { hasSupabaseConfig, publicEnv } from '@/lib/env';
+import { callsChannelName, realtimeHub } from '@/lib/realtime/channel-manager';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from './auth-store';
 import { useToastStore } from './toast-store';
 
 type CallKind = 'audio' | 'video';
-type CallPhase = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'active' | 'reconnecting' | 'ended' | 'failed';
+type CallPhase =
+  | 'idle'
+  | 'outgoing'
+  | 'incoming'
+  | 'connecting'
+  | 'active'
+  | 'reconnecting'
+  | 'ended'
+  | 'failed';
 
 type CallState = {
   phase: CallPhase;
@@ -21,7 +30,7 @@ type CallState = {
   startedAt: number | null;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
-  listen: () => (() => void) | undefined;
+  listen: (userId: string) => (() => void) | undefined;
   start: (input: {
     peerId: string;
     peerName: string;
@@ -37,7 +46,8 @@ type CallState = {
 };
 
 let pc: RTCPeerConnection | null = null;
-let signalChannel: ReturnType<ReturnType<typeof createClient>['channel']> | null = null;
+let signalRelease: (() => void) | null = null;
+let signalTopic: string | null = null;
 
 function iceServers(): RTCIceServer[] {
   return publicEnv().stunUrls.map((urls) => ({ urls }));
@@ -58,6 +68,14 @@ function webrtcSupported() {
   return typeof RTCPeerConnection !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 }
 
+function signalName(a: string, b: string) {
+  return `signal:${[a, b].sort().join(':')}`;
+}
+
+async function sendCallEvent(peerId: string, event: string, payload: Record<string, unknown>) {
+  await realtimeHub.send(callsChannelName(peerId), event, payload);
+}
+
 export const useCallStore = create<CallState>((set, get) => ({
   phase: 'idle',
   kind: 'audio',
@@ -70,37 +88,35 @@ export const useCallStore = create<CallState>((set, get) => ({
   startedAt: null,
   localStream: null,
   remoteStream: null,
-  listen: () => {
-    if (!hasSupabaseConfig()) return undefined;
-    const userId = useAuthStore.getState().userId;
-    if (!userId) return undefined;
-    const supabase = createClient();
-    const ch = supabase.channel(`calls:${userId}`);
-    ch.on('broadcast', { event: 'ring' }, ({ payload }) => {
-      const p = payload as {
-        from: string;
-        name: string;
-        kind: CallKind;
-        callId: string;
-        conversationId?: string;
-      };
-      if (get().phase !== 'idle') return;
-      set({
-        phase: 'incoming',
-        kind: p.kind,
-        peerId: p.from,
-        peerName: p.name,
-        callId: p.callId,
-        conversationId: p.conversationId ?? null,
+  listen: (userId) => {
+    if (!hasSupabaseConfig() || !userId) return undefined;
+    const { release } = realtimeHub.acquire(callsChannelName(userId), (ch) => {
+      ch.on('broadcast', { event: 'ring' }, ({ payload }) => {
+        const p = payload as {
+          from: string;
+          name: string;
+          kind: CallKind;
+          callId: string;
+          conversationId?: string;
+        };
+        if (get().phase !== 'idle') return;
+        set({
+          phase: 'incoming',
+          kind: p.kind,
+          peerId: p.from,
+          peerName: p.name,
+          callId: p.callId,
+          conversationId: p.conversationId ?? null,
+        });
+      });
+      ch.on('broadcast', { event: 'hangup' }, () => {
+        void cleanup('ended');
+      });
+      ch.on('broadcast', { event: 'decline' }, () => {
+        void cleanup('ended');
       });
     });
-    ch.on('broadcast', { event: 'hangup' }, () => {
-      void get().hangup();
-    });
-    ch.subscribe();
-    return () => {
-      void supabase.removeChannel(ch);
-    };
+    return () => release();
   },
   start: async ({ peerId, peerName, kind, conversationId }) => {
     if (!webrtcSupported()) {
@@ -110,11 +126,39 @@ export const useCallStore = create<CallState>((set, get) => ({
     const me = useAuthStore.getState();
     if (!me.userId) return;
     try {
+      const supabase = createClient();
+      const { data: blocked } = await supabase.rpc('is_blocked_either', {
+        a: me.userId,
+        b: peerId,
+      });
+      if (blocked) {
+        useToastStore.getState().push('امکان تماس با این کاربر وجود ندارد.');
+        return;
+      }
+      const { data: peerPrivacy } = await supabase
+        .from('privacy_settings')
+        .select('calls')
+        .eq('user_id', peerId)
+        .maybeSingle();
+      if (peerPrivacy?.calls === 'nobody') {
+        useToastStore.getState().push('این کاربر تماس دریافت نمی‌کند.');
+        return;
+      }
+      if (peerPrivacy?.calls === 'contacts') {
+        const { data: contacts } = await supabase.rpc('are_direct_contacts', {
+          a: me.userId,
+          b: peerId,
+        });
+        if (!contacts) {
+          useToastStore.getState().push('این کاربر فقط از مخاطبین تماس می‌پذیرد.');
+          return;
+        }
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: kind === 'video',
       });
-      const supabase = createClient();
       const { data: call } = await supabase
         .from('calls')
         .insert({ kind, initiator_id: me.userId, conversation_id: conversationId ?? null })
@@ -129,16 +173,12 @@ export const useCallStore = create<CallState>((set, get) => ({
         conversationId: conversationId ?? null,
         localStream: stream,
       });
-      await supabase.channel(`calls:${peerId}`).send({
-        type: 'broadcast',
-        event: 'ring',
-        payload: {
-          from: me.userId,
-          name: me.profile?.display_name ?? 'ARIO',
-          kind,
-          callId: get().callId,
-          conversationId,
-        },
+      await sendCallEvent(peerId, 'ring', {
+        from: me.userId,
+        name: me.profile?.display_name ?? 'ARIO',
+        kind,
+        callId: get().callId,
+        conversationId,
       });
       await setupPeer(true);
     } catch (err) {
@@ -168,11 +208,7 @@ export const useCallStore = create<CallState>((set, get) => ({
   decline: async () => {
     const { peerId } = get();
     if (peerId && hasSupabaseConfig()) {
-      await createClient().channel(`calls:${peerId}`).send({
-        type: 'broadcast',
-        event: 'hangup',
-        payload: {},
-      });
+      await sendCallEvent(peerId, 'decline', {});
     }
     await cleanup('ended');
   },
@@ -180,20 +216,17 @@ export const useCallStore = create<CallState>((set, get) => ({
     const state = get();
     const me = useAuthStore.getState().userId;
     if (state.peerId && hasSupabaseConfig()) {
-      await createClient().channel(`calls:${state.peerId}`).send({
-        type: 'broadcast',
-        event: 'hangup',
-        payload: {},
-      });
+      await sendCallEvent(state.peerId, 'hangup', {});
     }
     if (state.callId && me && hasSupabaseConfig()) {
       const started = state.startedAt ?? Date.now();
       const duration = Math.max(0, Math.round((Date.now() - started) / 1000));
+      const answered = state.phase === 'active' || state.phase === 'reconnecting';
       await createClient()
         .from('calls')
         .update({
           ended_at: new Date().toISOString(),
-          answered_at: state.phase === 'active' ? new Date(started).toISOString() : null,
+          answered_at: answered ? new Date(started).toISOString() : null,
           duration_seconds: duration,
         })
         .eq('id', state.callId);
@@ -201,12 +234,12 @@ export const useCallStore = create<CallState>((set, get) => ({
         {
           call_id: state.callId,
           user_id: me,
-          outcome: 'outgoing',
+          outcome: state.phase === 'incoming' ? 'incoming' : 'outgoing',
         },
         {
           call_id: state.callId,
           user_id: state.peerId ?? me,
-          outcome: state.phase === 'incoming' || state.phase === 'outgoing' ? 'missed' : 'incoming',
+          outcome: answered ? 'incoming' : 'missed',
         },
       ]);
     }
@@ -256,54 +289,56 @@ async function setupPeer(isInitiator: boolean) {
   };
   pc.oniceconnectionstatechange = () => {
     const s = pc?.iceConnectionState;
-    if (s === 'disconnected') useCallStore.setState({ phase: 'reconnecting' });
+    if (s === 'disconnected') {
+      useCallStore.setState({ phase: 'reconnecting' });
+      try {
+        pc?.restartIce();
+      } catch {
+        /* ignore */
+      }
+    }
     if (s === 'failed') useCallStore.setState({ phase: 'failed' });
     if (s === 'connected') useCallStore.setState({ phase: 'active', startedAt: Date.now() });
   };
-  const supabase = createClient();
-  signalChannel = supabase.channel(`signal:${[me, state.peerId].sort().join(':')}`);
-  signalChannel.on('broadcast', { event: 'signal' }, async ({ payload }) => {
-    const data = payload as { sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
-    if (data.sdp) {
-      await pc?.setRemoteDescription(data.sdp);
-      if (data.sdp.type === 'offer') {
-        const answer = await pc?.createAnswer();
-        if (answer) {
-          await pc?.setLocalDescription(answer);
-          await signalChannel?.send({ type: 'broadcast', event: 'signal', payload: { sdp: answer } });
+
+  signalTopic = signalName(me, state.peerId);
+  const acquired = realtimeHub.acquire(signalTopic, (ch) => {
+    ch.on('broadcast', { event: 'signal' }, async ({ payload }) => {
+      const data = payload as { sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit };
+      if (data.sdp) {
+        await pc?.setRemoteDescription(data.sdp);
+        if (data.sdp.type === 'offer') {
+          const answer = await pc?.createAnswer();
+          if (answer) {
+            await pc?.setLocalDescription(answer);
+            await realtimeHub.send(signalTopic!, 'signal', { sdp: answer });
+          }
         }
       }
-    }
-    if (data.candidate) await pc?.addIceCandidate(data.candidate);
-  });
-  await new Promise<void>((resolve) => {
-    signalChannel?.subscribe((status) => {
-      if (status === 'SUBSCRIBED') resolve();
+      if (data.candidate) await pc?.addIceCandidate(data.candidate);
     });
   });
+  signalRelease = acquired.release;
+  await acquired.ready;
+
   pc.onicecandidate = (ev) => {
-    if (ev.candidate) {
-      void signalChannel?.send({
-        type: 'broadcast',
-        event: 'signal',
-        payload: { candidate: ev.candidate.toJSON() },
-      });
+    if (ev.candidate && signalTopic) {
+      void realtimeHub.send(signalTopic, 'signal', { candidate: ev.candidate.toJSON() });
     }
   };
   if (isInitiator) {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    await signalChannel.send({ type: 'broadcast', event: 'signal', payload: { sdp: offer } });
+    await realtimeHub.send(signalTopic, 'signal', { sdp: offer });
   }
 }
 
 async function cleanup(phase: CallPhase) {
   pc?.close();
   pc = null;
-  if (signalChannel && hasSupabaseConfig()) {
-    void createClient().removeChannel(signalChannel);
-  }
-  signalChannel = null;
+  signalRelease?.();
+  signalRelease = null;
+  signalTopic = null;
   useCallStore.getState().localStream?.getTracks().forEach((t) => t.stop());
   useCallStore.setState({
     phase,

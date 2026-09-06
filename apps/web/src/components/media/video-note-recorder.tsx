@@ -57,7 +57,7 @@ export function VideoNoteRecorder({
     if (!chunks.current.length) return;
     const blob = new Blob(chunks.current, { type: 'video/webm' });
     const file = new File([blob], `note-${Date.now()}.webm`, { type: blob.type });
-    await uploadAndSend(conversationId, [file]);
+    await uploadAndSend(conversationId, [file], '', { messageType: 'video_note' });
     onClose();
   }
 

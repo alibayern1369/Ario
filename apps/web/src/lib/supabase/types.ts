@@ -147,7 +147,36 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      create_direct_conversation: { Args: { peer_id: string }; Returns: string };
+      create_room_conversation: {
+        Args: {
+          room_type: 'group' | 'channel';
+          room_title: string;
+          member_ids: string[];
+          is_public?: boolean;
+        };
+        Returns: string;
+      };
+      add_conversation_members: {
+        Args: { conv: string; member_ids: string[]; as_role?: string };
+        Returns: number;
+      };
+      join_public_channel: { Args: { conv: string }; Returns: undefined };
+      join_conversation_by_invite: { Args: { token: string }; Returns: string };
+      remove_conversation_member: { Args: { conv: string; target: string }; Returns: undefined };
+      set_member_role: {
+        Args: { conv: string; target: string; new_role: string };
+        Returns: undefined;
+      };
+      is_blocked_either: { Args: { a: string; b: string }; Returns: boolean };
+      are_direct_contacts: { Args: { a: string; b: string }; Returns: boolean };
+      member_has_permission: {
+        Args: { conv: string; uid: string; perm: string };
+        Returns: boolean;
+      };
+      record_channel_view: { Args: { msg: string }; Returns: undefined };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

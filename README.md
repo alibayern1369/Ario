@@ -48,14 +48,16 @@ pnpm build
 
 ## Production
 
-See [docs/fa/SETUP.md](docs/fa/SETUP.md) for Persian deployment, domains, TURN, backups, and restore.
+See [docs/fa/SETUP.md](docs/fa/SETUP.md) for Persian deployment, domains, TURN, backups, and restore.  
+Migrations: [docs/fa/MIGRATIONS.md](docs/fa/MIGRATIONS.md). Ops (TURN/Push/Cron): [docs/fa/OPS.md](docs/fa/OPS.md).
 
 1. Create a Supabase project.
-2. Run migrations in `supabase/migrations`.
+2. Run migrations in `supabase/migrations` (including `00003`–`00005`).
 3. Deploy `apps/web` and `apps/landing` as two Vercel (or Cloudflare) projects.
-4. Set environment variables from `.env.example`. Never put `SUPABASE_SERVICE_ROLE_KEY`, R2 secrets, or TURN passwords in `NEXT_PUBLIC_*`.
+4. Set environment variables from `.env.example`. Never put `SUPABASE_SERVICE_ROLE_KEY`, R2 secrets, TURN passwords, or `CRON_SECRET` in `NEXT_PUBLIC_*`.
 5. For files, set Cloudflare R2 keys (10 GB free). If R2 is unset, the app falls back to Supabase Storage.
 6. Point custom domains via those env vars — nothing is hardcoded.
+7. Confirm health at `/api/health` and staff ops at `/admin/ops`. Do not claim calls/push ready until `ARIO_VERIFICATION.md` passes.
 
 ## Architecture
 

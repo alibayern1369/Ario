@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { hasSupabaseConfig } from '@/lib/env';
+import { conversationChannelName, realtimeHub } from '@/lib/realtime/channel-manager';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from './auth-store';
 
@@ -30,7 +31,8 @@ export type ConversationRow = {
     type: string;
     sender_id: string | null;
   };
-  peer?: { id: string; display_name: string; username: string; avatar_path: string | null };
+  peer?: { id: string; display_name: string; username: string; avatar_path: string | null; last_seen_at?: string | null };
+  peerReceipts?: { last_read_at: string | null; last_delivered_at: string | null; read_receipts: boolean };
   unread: number;
 };
 
@@ -123,25 +125,50 @@ export const useChatStore = create<ChatState>((set, get) => ({
         .limit(1)
         .maybeSingle();
       let peer: ConversationRow['peer'];
+      let peerReceipts: ConversationRow['peerReceipts'];
       if (conv.type === 'direct') {
         const { data: others } = await supabase
           .from('conversation_members')
-          .select('user_id, profiles(id,display_name,username,avatar_path)')
+          .select(
+            'user_id,last_read_at,last_delivered_at,profiles(id,display_name,username,avatar_path,last_seen_at)',
+          )
           .eq('conversation_id', conv.id)
           .neq('user_id', userId)
           .limit(1)
           .maybeSingle();
-        const p = (others as { profiles?: ConversationRow['peer'] } | null)?.profiles;
+        const row = others as {
+          user_id: string;
+          last_read_at: string | null;
+          last_delivered_at: string | null;
+          profiles?: ConversationRow['peer'] | ConversationRow['peer'][];
+        } | null;
+        const p = Array.isArray(row?.profiles) ? row?.profiles[0] : row?.profiles;
         if (p) peer = p;
+        let readReceipts = true;
+        if (row?.user_id) {
+          const { data: privacy } = await supabase
+            .from('privacy_settings')
+            .select('read_receipts')
+            .eq('user_id', row.user_id)
+            .maybeSingle();
+          readReceipts = privacy?.read_receipts ?? true;
+        }
+        peerReceipts = {
+          last_read_at: row?.last_read_at ?? null,
+          last_delivered_at: row?.last_delivered_at ?? null,
+          read_receipts: readReceipts,
+        };
       }
       const { count } = await supabase
         .from('messages')
         .select('id', { count: 'exact', head: true })
         .eq('conversation_id', conv.id)
+        .neq('sender_id', userId)
         .gt('created_at', m.last_read_at ?? '1970-01-01');
       rows.push({
         ...conv,
         peer,
+        peerReceipts,
         lastMessage: last ?? undefined,
         unread: count ?? 0,
         membership: {
@@ -167,6 +194,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadMessages: async (conversationId, before) => {
     if (!hasSupabaseConfig()) return;
     set({ loadingMessages: true });
+    const userId = useAuthStore.getState().userId;
     const supabase = createClient();
     let q = supabase
       .from('messages')
@@ -177,57 +205,95 @@ export const useChatStore = create<ChatState>((set, get) => ({
       .limit(40);
     if (before) q = q.lt('created_at', before);
     const { data } = await q;
-    const incoming = ((data ?? []) as Array<MessageRow & { message_attachments?: MessageRow['attachments']; message_reactions?: MessageRow['reactions'] }>)
+    const conv = get().conversations.find((c) => c.id === conversationId);
+    const receipts = conv?.peerReceipts;
+    const incoming = ((data ?? []) as Array<
+      MessageRow & {
+        message_attachments?: MessageRow['attachments'];
+        message_reactions?: MessageRow['reactions'];
+      }
+    >)
       .reverse()
-      .map((row) => ({
-        ...row,
-        attachments: row.message_attachments ?? [],
-        reactions: row.message_reactions ?? [],
-        localStatus: 'sent' as const,
-      }));
+      .map((row) => {
+        let localStatus: MessageRow['localStatus'] = 'sent';
+        if (row.sender_id === userId && receipts?.read_receipts) {
+          if (receipts.last_read_at && row.created_at <= receipts.last_read_at) localStatus = 'read';
+          else if (receipts.last_delivered_at && row.created_at <= receipts.last_delivered_at) {
+            localStatus = 'delivered';
+          }
+        } else if (row.sender_id === userId && !receipts?.read_receipts) {
+          if (receipts?.last_delivered_at && row.created_at <= receipts.last_delivered_at) {
+            localStatus = 'delivered';
+          }
+        }
+        return {
+          ...row,
+          attachments: row.message_attachments ?? [],
+          reactions: row.message_reactions ?? [],
+          localStatus,
+        };
+      });
     set((s) => {
       const prev = s.messages[conversationId] ?? [];
       const merged = before ? [...incoming, ...prev] : incoming;
       const uniq = new Map(merged.map((m) => [m.id, m]));
-      return { messages: { ...s.messages, [conversationId]: [...uniq.values()] }, loadingMessages: false };
+      return {
+        messages: { ...s.messages, [conversationId]: [...uniq.values()] },
+        loadingMessages: false,
+      };
     });
   },
   listenConversation: (conversationId) => {
     if (!hasSupabaseConfig()) return () => undefined;
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`conv:${conversationId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
-        () => {
-          void get().loadMessages(conversationId);
-          void get().loadConversations();
-        },
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'message_reactions' },
-        () => void get().loadMessages(conversationId),
-      )
-      .on('broadcast', { event: 'activity' }, ({ payload }) => {
-        const p = payload as { userId?: string; kind?: string };
-        if (!p.userId) return;
-        set((s) => {
-          const cur = new Set(s.typing[conversationId] ?? []);
-          if (p.kind && p.kind !== 'off') cur.add(`${p.userId}:${p.kind}`);
-          else {
-            [...cur].forEach((x) => {
-              if (x.startsWith(`${p.userId}:`)) cur.delete(x);
-            });
-          }
-          return { typing: { ...s.typing, [conversationId]: [...cur] } };
+    const topic = conversationChannelName(conversationId);
+    const { release } = realtimeHub.acquire(topic, (channel) => {
+      channel
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          () => {
+            void get().loadMessages(conversationId);
+            void get().loadConversations();
+          },
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'message_reactions' },
+          () => void get().loadMessages(conversationId),
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'conversation_members',
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          () => {
+            void get().loadConversations().then(() => get().loadMessages(conversationId));
+          },
+        )
+        .on('broadcast', { event: 'activity' }, ({ payload }) => {
+          const p = payload as { userId?: string; kind?: string };
+          if (!p.userId) return;
+          set((s) => {
+            const cur = new Set(s.typing[conversationId] ?? []);
+            if (p.kind && p.kind !== 'off') cur.add(`${p.userId}:${p.kind}`);
+            else {
+              [...cur].forEach((x) => {
+                if (x.startsWith(`${p.userId}:`)) cur.delete(x);
+              });
+            }
+            return { typing: { ...s.typing, [conversationId]: [...cur] } };
+          });
         });
-      })
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+    });
+    return () => release();
   },
   sendText: async (conversationId, content, replyTo) => {
     const userId = useAuthStore.getState().userId;
@@ -277,6 +343,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
     await get().setDraft(conversationId, '');
     await get().loadMessages(conversationId);
+    const title = useAuthStore.getState().profile?.display_name ?? 'آریو';
+    void fetch('/api/push/notify-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId,
+        title,
+        body: content.slice(0, 180),
+      }),
+    }).catch(() => undefined);
   },
   editMessage: async (id, conversationId, content) => {
     const supabase = createClient();
@@ -344,11 +420,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!hasSupabaseConfig()) return;
     const userId = useAuthStore.getState().userId;
     if (!userId) return;
-    const supabase = createClient();
-    void supabase.channel(`conv:${conversationId}`).send({
-      type: 'broadcast',
-      event: 'activity',
-      payload: { userId, kind },
+    const topic = conversationChannelName(conversationId);
+    void realtimeHub.send(topic, 'activity', { userId, kind }, (channel) => {
+      // Ensure listeners exist if send races ahead of listenConversation.
+      channel.on('broadcast', { event: 'activity' }, () => undefined);
     });
   },
   togglePinChat: async (conversationId, pinned) => {
@@ -385,35 +460,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const userId = useAuthStore.getState().userId;
     if (!userId) return null;
     const supabase = createClient();
-    const { data: mine } = await supabase
-      .from('conversation_members')
-      .select('conversation_id, conversations!inner(type)')
-      .eq('user_id', userId);
-    for (const row of mine ?? []) {
-      const embedded = (row as unknown as { conversations: { type: string } | { type: string }[] })
-        .conversations;
-      const type = Array.isArray(embedded) ? embedded[0]?.type : embedded?.type;
-      if (type !== 'direct') continue;
-      const { data: other } = await supabase
-        .from('conversation_members')
-        .select('user_id')
-        .eq('conversation_id', row.conversation_id)
-        .eq('user_id', peerId)
-        .maybeSingle();
-      if (other) return row.conversation_id;
-    }
-    const { data: conv, error } = await supabase
-      .from('conversations')
-      .insert({ type: 'direct', created_by: userId })
-      .select('id')
-      .single();
-    if (error || !conv) return null;
-    await supabase.from('conversation_members').insert([
-      { conversation_id: conv.id, user_id: userId, role: 'member' },
-      { conversation_id: conv.id, user_id: peerId, role: 'member' },
-    ]);
+
+    const { data: blocked } = await supabase.rpc('is_blocked_either', {
+      a: userId,
+      b: peerId,
+    });
+    if (blocked) return null;
+
+    const { data: convId, error } = await supabase.rpc('create_direct_conversation', {
+      peer_id: peerId,
+    });
+    if (error || !convId) return null;
     await get().loadConversations();
-    return conv.id;
+    return convId as string;
   },
   retry: async (conversationId, clientId) => {
     const msg = (get().messages[conversationId] ?? []).find((m) => m.client_id === clientId);

@@ -99,6 +99,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signUp: async (input) => {
     try {
       const supabase = createClient();
+      const { data: setting } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'registration_policy')
+        .maybeSingle();
+      const mode =
+        setting && typeof setting.value === 'object' && setting.value && 'mode' in setting.value
+          ? String((setting.value as { mode?: string }).mode)
+          : 'invite';
+      if (mode !== 'open') {
+        return 'ثبت‌نام آزاد غیرفعال است. از لینک دعوت استفاده کنید.';
+      }
       const { error } = await supabase.auth.signUp({
         email: input.email.trim(),
         password: input.password,

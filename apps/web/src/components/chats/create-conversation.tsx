@@ -18,6 +18,7 @@ export function CreateConversation({ open, onClose }: { open: boolean; onClose: 
   const [people, setPeople] = useState<Person[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
   const [title, setTitle] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -41,26 +42,14 @@ export function CreateConversation({ open, onClose }: { open: boolean; onClose: 
     if (!me || !title.trim() || picked.length === 0) return;
     setBusy(true);
     const supabase = createClient();
-    const { data: conv } = await supabase
-      .from('conversations')
-      .insert({
-        type,
-        title: title.trim(),
-        created_by: me,
-        invite_token: crypto.randomUUID().replace(/-/g, '').slice(0, 12),
-      })
-      .select('id')
-      .single();
-    if (conv) {
-      await supabase.from('conversation_members').insert([
-        { conversation_id: conv.id, user_id: me, role: 'owner' },
-        ...picked.map((id) => ({
-          conversation_id: conv.id,
-          user_id: id,
-          role: type === 'channel' ? 'subscriber' : 'member',
-        })),
-      ]);
-      router.push(`/c/${conv.id}`);
+    const { data: convId, error } = await supabase.rpc('create_room_conversation', {
+      room_type: type,
+      room_title: title.trim(),
+      member_ids: picked,
+      is_public: type === 'channel' ? isPublic : false,
+    });
+    if (!error && convId) {
+      router.push(`/c/${convId}`);
     }
     setBusy(false);
     onClose();
@@ -86,6 +75,12 @@ export function CreateConversation({ open, onClose }: { open: boolean; onClose: 
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
+      ) : null}
+      {tab === 'channel' ? (
+        <label className="mb-3 flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
+          کانال عمومی (قابل عضویت بدون دعوت)
+        </label>
       ) : null}
       <div className="max-h-72 space-y-1 overflow-auto">
         {people.map((p) => (

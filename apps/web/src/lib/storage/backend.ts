@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { hasR2Config } from '@/lib/env';
-import { canReadObject, canWriteObject, conversationIdFromPath } from './access';
+import { canReadObject, canWriteObject, conversationIdFromPath, ownerIdFromUserPath } from './access';
 import { signR2Read, signR2Write } from './r2';
 
 async function requireUser() {
@@ -25,11 +26,42 @@ async function isMember(conversationId: string | null, userId: string) {
   return Boolean(data);
 }
 
+async function canViewStoryAuthor(viewerId: string, authorId: string | null) {
+  if (!authorId) return false;
+  if (viewerId === authorId) return true;
+  const admin = createAdminClient();
+  const { data: blocked } = await admin.rpc('is_blocked_either', {
+    a: viewerId,
+    b: authorId,
+  });
+  if (blocked) return false;
+  const { data: story } = await admin
+    .from('stories')
+    .select('id')
+    .eq('author_id', authorId)
+    .gt('expires_at', new Date().toISOString())
+    .limit(1)
+    .maybeSingle();
+  return Boolean(story);
+}
+
 export async function createReadUrl(bucket: string, path: string) {
   const { supabase, user } = await requireUser();
   if (!user) return { error: 'unauthorized' as const, status: 401 };
   const member = await isMember(conversationIdFromPath(path), user.id);
-  if (!canReadObject({ bucket, path, userId: user.id, isConversationMember: member })) {
+  const storyOk =
+    bucket === 'stories'
+      ? await canViewStoryAuthor(user.id, ownerIdFromUserPath(path))
+      : false;
+  if (
+    !canReadObject({
+      bucket,
+      path,
+      userId: user.id,
+      isConversationMember: member,
+      canViewStoryAuthor: storyOk,
+    })
+  ) {
     return { error: 'forbidden' as const, status: 403 };
   }
   if (hasR2Config()) {
@@ -39,7 +71,9 @@ export async function createReadUrl(bucket: string, path: string) {
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
     return { url: data.publicUrl, provider: 'supabase' as const };
   }
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+  // Sign with service role after app ACL so private objects are never world-readable by path guess.
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage.from(bucket).createSignedUrl(path, 3600);
   if (error || !data) return { error: 'missing' as const, status: 404 };
   return { url: data.signedUrl, provider: 'supabase' as const };
 }

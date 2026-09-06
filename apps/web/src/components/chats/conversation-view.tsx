@@ -4,11 +4,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Info, Phone, Video } from 'lucide-react';
 import { hasPermission } from '@ario/shared';
-import { formatDaySeparator } from '@/lib/format';
+import { formatDaySeparator, formatLastSeen } from '@/lib/format';
 import { useAuthStore } from '@/stores/auth-store';
 import { titleOf, useChatStore, type MessageRow } from '@/stores/chat-store';
 import { useCallStore } from '@/stores/call-store';
 import { usePresenceStore } from '@/stores/presence-store';
+import { visibilityAllows } from '@ario/shared';
+import { createClient } from '@/lib/supabase/client';
+import { hasSupabaseConfig } from '@/lib/env';
 import { MessageBubble } from '@/components/messages/message-bubble';
 import { Composer } from '@/components/chats/composer';
 import { ForwardSheet } from '@/components/chats/forward-sheet';
@@ -30,6 +33,7 @@ export function ConversationView({ conversationId }: { conversationId: string })
   const [forward, setForward] = useState<MessageRow | null>(null);
   const [info, setInfo] = useState(false);
   const [jump, setJump] = useState(false);
+  const [peerStatus, setPeerStatus] = useState('…');
   const scroller = useRef<HTMLDivElement>(null);
   const firstUnread = useMemo(() => {
     const at = conv?.membership?.last_read_at;
@@ -45,13 +49,67 @@ export function ConversationView({ conversationId }: { conversationId: string })
   }, [conversationId, load, listen, markRead]);
 
   useEffect(() => {
+    if (!conv || conv.type !== 'channel' || !messages.length || !hasSupabaseConfig()) return;
+    const latest = [...messages].reverse().find((m) => !m.deleted_for_everyone);
+    if (!latest || latest.id.length < 30) return;
+    void createClient().rpc('record_channel_view', { msg: latest.id });
+  }, [conv?.type, conversationId, messages[messages.length - 1]?.id]);
+
+  useEffect(() => {
+    const peer = conv?.peer;
+    if (!peer || !me || !hasSupabaseConfig()) {
+      setPeerStatus(conv?.type === 'channel' ? 'کانال' : conv?.type === 'group' ? 'گروه' : '');
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const supabase = createClient();
+      const { data: privacy } = await supabase
+        .from('privacy_settings')
+        .select('online,last_seen')
+        .eq('user_id', peer.id)
+        .maybeSingle();
+      const { data: contacts } = await supabase.rpc('are_direct_contacts', { a: me, b: peer.id });
+      const showOnline = visibilityAllows(
+        privacy?.online ?? 'everyone',
+        me,
+        peer.id,
+        Boolean(contacts),
+      );
+      const showLastSeen = visibilityAllows(
+        privacy?.last_seen ?? 'everyone',
+        me,
+        peer.id,
+        Boolean(contacts),
+      );
+      if (cancelled) return;
+      if (showOnline && online) {
+        setPeerStatus('آنلاین');
+        return;
+      }
+      if (showLastSeen) {
+        setPeerStatus(formatLastSeen(peer.last_seen_at));
+        return;
+      }
+      setPeerStatus('');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [conv?.peer, conv?.type, me, online]);
+
+  useEffect(() => {
     const el = scroller.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages.length]);
 
   const canSend = conv
-    ? hasPermission(conv.membership?.role ?? 'member', conv.membership?.permissions ?? [], 'send_messages')
+    ? hasPermission(
+        conv.membership?.role ?? 'member',
+        conv.membership?.permissions ?? [],
+        conv.type === 'channel' ? 'post_channel' : 'send_messages',
+      )
     : true;
 
   let lastDay = '';
@@ -76,13 +134,7 @@ export function ConversationView({ conversationId }: { conversationId: string })
                   : typing.some((t) => t.endsWith('uploading'))
                     ? 'در حال بارگذاری…'
                     : 'در حال نوشتن…'
-                : conv?.peer
-                  ? online
-                    ? 'آنلاین'
-                    : 'آخرین بازدید اخیراً'
-                  : conv?.type === 'channel'
-                    ? 'کانال'
-                    : 'گروه'}
+                : peerStatus}
             </div>
           </div>
         </button>

@@ -21,10 +21,12 @@ enabled = true
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["http://localhost:3000", "http://127.0.0.1:3000"]
 jwt_expiry = 3600
-enable_signup = true
+# Match default system_settings.registration_policy = invite.
+# Hosted Supabase Auth Dashboard must also disable open signup for production invite-only.
+enable_signup = false
 
 [auth.email]
-enable_signup = true
+enable_signup = false
 double_confirm_changes = false
 enable_confirmations = false
 
@@ -37,3 +39,14 @@ file_size_limit = "80MiB"
 
 [analytics]
 enabled = false
+
+# Schedule these in the hosted project (Dashboard → Edge Functions → Schedules),
+# Vercel Cron, or any HTTPS scheduler. Always send CRON_SECRET.
+# expire-stories: every 15 minutes → POST /api/cron/expire-stories or function expire-stories
+# publish-scheduled: every 1 minute → POST /api/cron/publish-scheduled or function publish-scheduled
+#
+# [functions.expire-stories]
+# verify_jwt = false
+# [functions.publish-scheduled]
+# verify_jwt = false
+# Auth is enforced inside the function via CRON_SECRET / service role bearer.

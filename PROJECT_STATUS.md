@@ -1,105 +1,85 @@
 # ARIO project status
 
-Honest checklist against the product specification.  
-`[COMPLETE]` means the flow is implemented and wired to real Auth/DB/Realtime/Storage — not a static mock.  
-Some items stay `[PARTIAL]` where a platform, paid provider, or ops credential is required.
+Honest checklist after the 2026-09-05 functional-core remediation.  
+When this file conflicts with `ARIA_AUDIT.md` or running code, **trust the audit + code**.  
+`[COMPLETE]` means verified wired path (UI + DB + authz + realtime where applicable).  
+`[PARTIAL]` means real code exists but ops/device/edge cases remain.  
+`[BROKEN]` / removed claims: do not mark complete.
 
-## Product and design
+## Security (Priority 0)
 
-- [COMPLETE] Product name آریو / ARIO, Persian-first copy
-- [COMPLETE] Original design tokens (light + independent dark + system)
-- [COMPLETE] RTL layouts, Vazirmatn, mixed LTR isolate for URLs/usernames
-- [COMPLETE] Replaceable branding under `apps/web/public/branding/`
-- [PARTIAL] Liquid-glass used on nav/composer only — not a full motion-design system with every iOS sheet gesture
-- [COMPLETE] `prefers-reduced-motion` respected in CSS
+- [COMPLETE] Membership inserts locked; authorized RPCs for DM/room/join/add/remove/role
+- [COMPLETE] Message update ownership + moderator pin/delete guard (RLS + trigger)
+- [COMPLETE] Middleware strips banned/disabled active sessions
+- [COMPLETE] Blocks enforced on DM create, DM message insert, calls
+- [COMPLETE] Invite accept creates user before burning token
+- [COMPLETE] Invite-only registration UI + app `signUp` gate; local Auth signup disabled in `config.toml`
+- [COMPLETE] Push dispatch authorization + mute awareness
+- [PARTIAL] Hosted Supabase Auth Dashboard must also disable open signup (ops)
+- [PARTIAL] Device “revoke” still deletes `user_devices` row only (not full JWT revoke)
 
-## Mobile / PWA
+## Realtime
 
-- [COMPLETE] Mobile-first shell, desktop multi-column (list + conversation)
-- [COMPLETE] Safe-area padding, 44px targets
-- [COMPLETE] Web App Manifest, service worker, offline shell, update prompt
-- [COMPLETE] Android install prompt + iOS A2HS guidance
-- [PARTIAL] App badge: notification badge via Web Push where the browser supports it; no iOS badge API polyfill
-- [COMPLETE] Architecture remains a web PWA (packagable later with Capacitor/TWA — not shipped)
+- [COMPLETE] Shared realtime hub (subscribe-before-send, cleanup, auth reset)
+- [COMPLETE] Presence after hydrate; last_seen writes; visibility handler
+- [COMPLETE] Typing / recording / uploading on subscribed conversation channel
+- [COMPLETE] Call ring / decline / hangup / WebRTC signal via hub
 
-## Authentication and profiles
+## Messaging
 
-- [COMPLETE] Email/password login, logout, persistent Supabase sessions
-- [COMPLETE] Profile: username, display name, avatar, bio
-- [COMPLETE] Password change, device list, revoke device row
-- [COMPLETE] Account status active/disabled/banned enforced in middleware and RLS
-- [COMPLETE] Invite accept flow (`/invite/[token]` + `/api/invite/accept`)
-- [COMPLETE] OTP/SMS provider interface in `@ario/shared` — no paid SMS required
-- [PARTIAL] Registration policy is stored and editable; open/closed modes are not fully gated in the login UI beyond invite-only default
+- [COMPLETE] DM text send/receive/persist/edit/delete/react/draft/pin/archive/mute/Saved Messages
+- [COMPLETE] Delivered/read ticks from peer membership timestamps (respect `read_receipts`)
+- [COMPLETE] Unread excludes own messages
+- [PARTIAL] Reply quote preview still minimal; forward attachments not fully copied
+- [PARTIAL] Mentions not implemented
 
-## Presence and messaging
+## Voice / media
 
-- [COMPLETE] Online presence (Supabase Presence) + last_seen writes
-- [COMPLETE] Typing / recording / uploading broadcasts
-- [COMPLETE] 1:1 DMs, Saved Messages auto-created
-- [COMPLETE] Message states: sending, sent, failed, retry; delivered/read via member timestamps
-- [COMPLETE] Reply, forward, copy, edit, delete-for-me, delete-for-everyone, pin, react
-- [PARTIAL] Multi-select batch actions not implemented (single-message actions work)
-- [PARTIAL] Swipe-to-reply is a long-press/context menu on touch (no custom swipe physics)
-- [COMPLETE] Date separators, unread divider, jump to latest, drafts
-- [COMPLETE] Groups and channels with roles + permission keys
-- [PARTIAL] Join-approval queue UI is schema-ready (`join_approval`) but has no dedicated approval inbox
-- [COMPLETE] Channel scheduled posts via `scheduled_at` + Edge Function `publish-scheduled`
-- [PARTIAL] Channel comments/discussion: replies on posts exist; no separate comment thread product
-- [COMPLETE] Reactions with counts (who-reacted list is in the reaction rows)
+- [COMPLETE] Canonical voice type (`voice`); legacy `audio` still plays
+- [COMPLETE] Upload-then-insert; XHR upload progress callback
+- [COMPLETE] Private media signed URL after membership ACL; stories not path-guessable
+- [PARTIAL] Orphan blob janitor not scheduled in hosted cron yet
 
-## Media, voice, search
+## Groups / channels
 
-- [COMPLETE] Images, video, GIF, files, voice uploads with MIME/size checks
-- [COMPLETE] Signed URLs for private objects; Cloudflare R2 preferred (Supabase Storage fallback)
-- [COMPLETE] Voice recorder (permission, timer, pause/resume, preview, send, delete)
-- [COMPLETE] Voice playback with seek and 1x/1.5x/2x; one shared audio element
-- [PARTIAL] Video notes: circular recorder when MediaRecorder+camera exist; otherwise explicit fallback to file attach
-- [PARTIAL] Contact/location messages: schema types exist; no dedicated pickers
-- [COMPLETE] Chat info tabs: media, files, links, voice, pinned, members
-- [COMPLETE] Global search API (`pg` ILIKE) + in-list filter
-- [PARTIAL] Thumbnail generation is client/browser native — no server image pipeline
+- [COMPLETE] Create via RPC; owner/admin member add/remove/promote/demote UI
+- [COMPLETE] Invite link copy + `/join/[token]`
+- [COMPLETE] Public channels + search join; channel view recording RPC
+- [PARTIAL] Scheduled posts: edge + `/api/cron/publish-scheduled` ready; composer UI still limited
+- [PARTIAL] Join-approval queue UI not built
+- [PARTIAL] Cron heartbeats require `00005` + `CRON_SECRET` + scheduler (ops)
 
-## Stories, calls, people
+## Calls
 
-- [COMPLETE] Image/video stories, caption, expiry, viewer, seen list, reply, reaction, delete, ring
-- [COMPLETE] 1:1 WebRTC audio/video with ring, accept/decline, mute, camera, switch, reconnect, history
-- [COMPLETE] TURN/STUN from env via `/api/turn` (no secrets in the client bundle)
-- [COMPLETE] Call history with start-again
-- [COMPLETE] Internal people directory (no phone-book dependency)
-- [COMPLETE] Block + report
+- [COMPLETE] WebRTC audio/video with subscribed signaling + ICE restart attempt
+- [COMPLETE] Block/privacy gates before call start
+- [PARTIAL] Production reliability requires configured + **verified** TURN (`TURN_*`) — not claimed from env alone
+- [PARTIAL] Call history outcomes approximate
 
-## Privacy, security, storage
+## Stories / notifications / PWA / admin
 
-- [COMPLETE] Privacy settings rows + UI
-- [COMPLETE] RLS on all core tables; members-only message select
-- [COMPLETE] Secure headers, env validation helpers, upload limits
-- [COMPLETE] File bytes on Cloudflare R2 via server-signed PUT/GET; no R2 secrets in the client
-- [COMPLETE] Admin cannot read private message bodies (no admin message viewer)
-- [COMPLETE] Not labeled E2EE
-- [PARTIAL] Rate limiting relies on Supabase/Auth defaults — no extra Redis limiter
-- [PARTIAL] Orphan file cleanup is documented; no always-on janitor beyond story expiry function
+- [COMPLETE] Stories create/view/react/reply; expire function deletes storage objects
+- [PARTIAL] Story audience still “all non-blocked actives” (no followers graph)
+- [COMPLETE] Message → notify fan-out path (VAPID required); mute/block respected
+- [PARTIAL] Push **not** claimed on iOS PWA until device-tested
+- [COMPLETE] Admin panel staff gate; maintenance mode enforced in middleware
+- [PARTIAL] Admin storage byte stats still incomplete
+- [COMPLETE] PWA manifest/SW/install shell (offline queue still absent)
 
-## Admin, services, landing
+## Verification
 
-- [COMPLETE] Role-gated `/admin` (middleware + RLS)
-- [COMPLETE] Dashboard counts, user create/ban/role, groups/channels disable, reports workflow, settings, landing CMS, audit log
-- [PARTIAL] Storage-usage bytes chart is not computed (counts only)
-- [COMPLETE] Super-app `ServiceModule` registry + Services page (no fake mini-apps)
-- [COMPLETE] Separate `apps/landing` with Persian SEO, legal pages, sitemap, robots, JSON-LD
-- [COMPLETE] Landing content editable in admin (`landing_content`) with JSON fallback
+- Matrix: `ARIO_VERIFICATION.md` (چک‌لیست دوکاربره کامل)
+- Ops: `docs/fa/OPS.md` + `/admin/ops`
+- Migrations guide: `docs/fa/MIGRATIONS.md`
+- Unit: shared security + storage ACL tests
+- E2E: login smoke + push unauthorized + optional two-user with `ARIO_E2E_*`
 
-## Notifications
+## Required ops before production claim
 
-- [COMPLETE] In-app notification rows + Web Push subscribe/dispatch
-- [COMPLETE] Per-chat mute
-- [PARTIAL] Fine-grained mention/reply/call push fan-out is not a background worker for every event (dispatch API exists; clients can call it)
-
-## DevEx, tests, deploy
-
-- [COMPLETE] `.env.example`, seed notes, lint/typecheck/test/build scripts
-- [COMPLETE] Unit tests: permissions, access control, uploads, services
-- [PARTIAL] Playwright covers login shell; full two-user realtime E2E needs a running local Supabase
-- [COMPLETE] Health endpoint, structured refusal to log message bodies
-- [COMPLETE] Backup/restore documented in `docs/fa/SETUP.md`
-- [COMPLETE] README + Persian setup docs
+1. Run migrations `00003_security_harden.sql`, `00004_channel_views.sql`, `00005_cron_heartbeats.sql`
+2. Disable open signup in hosted Auth
+3. Provision VAPID + optional `PUSH_DISPATCH_SECRET`; verify with `POST /api/debug/push`
+4. Provision TURN (`TURN_*`); verify with two-user call — do **not** claim calls ready from env alone
+5. Set `CRON_SECRET`; schedule `expire-stories` + `publish-scheduled`; confirm via `/api/debug/cron`
+6. Fill verification matrix with two real sessions (including banned active session)
+7. iOS PWA push: only PASS after device checklist

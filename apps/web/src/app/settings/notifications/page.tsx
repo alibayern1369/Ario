@@ -50,6 +50,9 @@ export default function NotificationsPage() {
       <div className="mx-auto max-w-lg space-y-4 px-4 py-8">
         <h1 className="text-2xl font-bold">اعلان‌ها</h1>
         <p className="text-sm text-soft">اعلان پیام، منشن، پاسخ و تماس. بی‌صدا کردن هر گفتگو از داخل همان گفتگو انجام می‌شود.</p>
+        <p className="text-sm text-muted">
+          روی iPhone فقط پس از Add to Home Screen و در نسخه‌های پشتیبانی‌شده انتظار اعلان داشته باشید. تا تست واقعی، Push برای iOS را آماده فرض نکنید.
+        </p>
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={preview} onChange={(e) => setPreview(e.target.checked)} />
           نمایش پیش‌نمایش متن در اعلان

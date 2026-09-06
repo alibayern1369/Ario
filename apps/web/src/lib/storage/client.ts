@@ -12,7 +12,12 @@ export async function signedUrl(bucket: string, path: string) {
   return data.url;
 }
 
-export async function uploadToStorage(bucket: string, path: string, file: File) {
+export async function uploadToStorage(
+  bucket: string,
+  path: string,
+  file: File,
+  onProgress?: (pct: number) => void,
+) {
   const sign = await fetch('/api/storage/upload-url', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -20,10 +25,23 @@ export async function uploadToStorage(bucket: string, path: string, file: File) 
   });
   if (!sign.ok) throw new Error('sign_failed');
   const payload = (await sign.json()) as { url: string; headers?: Record<string, string> };
-  const put = await fetch(payload.url, {
-    method: 'PUT',
-    body: file,
-    headers: payload.headers ?? { 'Content-Type': file.type },
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', payload.url);
+    const headers = payload.headers ?? { 'Content-Type': file.type || 'application/octet-stream' };
+    Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+    xhr.upload.onprogress = (ev) => {
+      if (!ev.lengthComputable || !onProgress) return;
+      onProgress(Math.round((ev.loaded / ev.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error('upload_failed'));
+    };
+    xhr.onerror = () => reject(new Error('upload_failed'));
+    xhr.onabort = () => reject(new Error('upload_aborted'));
+    xhr.send(file);
   });
-  if (!put.ok) throw new Error('upload_failed');
 }
+

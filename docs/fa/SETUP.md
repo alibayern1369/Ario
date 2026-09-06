@@ -23,6 +23,8 @@
 supabase db push
 ```
 
+راهنمای فارسی و بازبینی امنیتی migrationها: [MIGRATIONS.md](./MIGRATIONS.md).
+
 سیاست‌های RLS در مهاجرت‌ها فعال‌اند. کاربر مسدود یا غیرفعال نباید به پیام‌ها دسترسی داشته باشد.
 
 ## کاربر اول
@@ -35,7 +37,7 @@ supabase db push
 2. باکت خصوصی Cloudflare R2 برای فایل‌ها (۱۰ گیگ رایگان). کلیدها فقط در `apps/web`
 3. دو پروژهٔ Vercel از همین مونوریپو: یکی `apps/web` و یکی `apps/landing`
 4. دامنه و SSL روی همان میزبان
-5. Edge Functionهای `expire-stories` و `publish-scheduled` را زمان‌بندی کنید (هر چند دقیقه)
+5. `CRON_SECRET` را تنظیم و Edge Function / مسیرهای `/api/cron/*` را زمان‌بندی کنید — جزئیات: [OPS.md](./OPS.md)
 
 ## فضای فایل (Cloudflare R2)
 
@@ -69,6 +71,7 @@ R2_BUCKET=ario
 - STUN عمومی پیش‌فرض: `stun:stun.l.google.com:19302`
 - TURN را از سرویس رایگان/ارزان (مثلاً Metered) یا coturn روی VPS بگیرید.
 - نام کاربری و رمز TURN هرگز در باندل فرانت قرار نمی‌گیرد.
+- تأیید: `/api/debug/turn` و تست دوکاربره — جزئیات در [OPS.md](./OPS.md).
 
 ## اعلان
 
@@ -78,10 +81,16 @@ npx web-push generate-vapid-keys
 
 کلید عمومی در `NEXT_PUBLIC_VAPID_PUBLIC_KEY` و خصوصی در `VAPID_PRIVATE_KEY`.
 
-روی iOS اعلان فقط پس از Add to Home Screen در نسخه‌های پشتیبانی‌شده کار می‌کند.
+روی iOS اعلان فقط پس از Add to Home Screen در نسخه‌های پشتیبانی‌شده کار می‌کند؛ تا تست دستگاه واقعی ادعا نکنید.
+
+تست سریع: `POST /api/debug/push` یا صفحهٔ `/admin/ops`.
+
+## Cron
+
+`CRON_SECRET` را در env بگذارید و jobهای `expire-stories` / `publish-scheduled` را طبق [OPS.md](./OPS.md) زمان‌بندی کنید.
 
 ## نگهداری
 
 - محدودیت حجم بارگذاری در `system_settings.upload_limits`
-- داستان‌های منقضی با Function `expire-stories`
-- سلامت برنامه: `GET /api/health`
+- داستان‌های منقضی با Function یا `/api/cron/expire-stories`
+- سلامت برنامه: `GET /api/health` و `/admin/ops`

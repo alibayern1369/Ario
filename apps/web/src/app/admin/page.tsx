@@ -58,6 +58,7 @@ export default function AdminHome() {
             ['/admin/groups', 'گروه‌ها و کانال‌ها'],
             ['/admin/reports', 'گزارش‌ها'],
             ['/admin/settings', 'تنظیمات سیستم'],
+            ['/admin/ops', 'سلامت و دیباگ'],
             ['/admin/landing', 'محتوای وب‌سایت'],
             ['/admin/audit', 'گزارش فعالیت'],
           ].map(([href, label]) =>

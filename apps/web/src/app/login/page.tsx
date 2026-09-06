@@ -1,13 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { loginSchema, registerSchema } from '@ario/shared';
 import { ArioWordmark } from '@/components/brand/logo';
 import { useAuthStore } from '@/stores/auth-store';
+import { createClient } from '@/lib/supabase/client';
+import { hasSupabaseConfig } from '@/lib/env';
 
 export default function LoginPage() {
   const next = useSearchParams().get('next') ?? '/';
+  const reason = useSearchParams().get('reason');
   const signIn = useAuthStore((s) => s.signIn);
   const signUp = useAuthStore((s) => s.signUp);
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -15,8 +18,29 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    reason === 'banned' || reason === 'disabled'
+      ? 'حساب شما غیرفعال یا مسدود شده است.'
+      : null,
+  );
   const [busy, setBusy] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(false);
+
+  useEffect(() => {
+    if (!hasSupabaseConfig()) return;
+    void createClient()
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'registration_policy')
+      .maybeSingle()
+      .then(({ data }) => {
+        const mode =
+          data && typeof data.value === 'object' && data.value && 'mode' in data.value
+            ? String((data.value as { mode?: string }).mode)
+            : 'invite';
+        setRegistrationOpen(mode === 'open');
+      });
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,8 +62,12 @@ export default function LoginPage() {
           setError(err.includes('Invalid') || err.includes('invalid') ? 'ایمیل یا رمز نادرست است.' : err);
           return;
         }
-        // Full navigation so middleware sees the new auth cookies.
         window.location.assign(next.startsWith('/') ? next : '/');
+        return;
+      }
+
+      if (!registrationOpen) {
+        setError('ثبت‌نام آزاد غیرفعال است. از لینک دعوت استفاده کنید.');
         return;
       }
 
@@ -84,7 +112,7 @@ export default function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        {mode === 'register' ? (
+        {mode === 'register' && registrationOpen ? (
           <>
             <input
               className="ario-field ltr-isolate"
@@ -105,15 +133,17 @@ export default function LoginPage() {
           {busy ? 'لطفاً صبر کنید…' : mode === 'login' ? 'ورود به آریو' : 'ساخت حساب'}
         </button>
       </form>
-      <button
-        type="button"
-        className="mt-4 text-sm text-accent"
-        onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-      >
-        {mode === 'login'
-          ? 'حساب ندارید؟ ساخت حساب (در صورت باز بودن ثبت‌نام)'
-          : 'حساب دارید؟ ورود'}
-      </button>
+      {registrationOpen ? (
+        <button
+          type="button"
+          className="mt-4 text-sm text-accent"
+          onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+        >
+          {mode === 'login' ? 'حساب ندارید؟ ساخت حساب' : 'حساب دارید؟ ورود'}
+        </button>
+      ) : (
+        <p className="mt-4 text-sm text-muted">ثبت‌نام فقط با دعوت‌نامه امکان‌پذیر است.</p>
+      )}
     </main>
   );
 }

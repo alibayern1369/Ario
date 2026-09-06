@@ -64,6 +64,8 @@ export function serverSecrets() {
       .filter(Boolean),
     turnUsername: readEnv('TURN_USERNAME'),
     turnCredential: readEnv('TURN_CREDENTIAL'),
+    pushDispatchSecret: readEnv('PUSH_DISPATCH_SECRET'),
+    cronSecret: readEnv('CRON_SECRET'),
     r2: {
       accountId,
       accessKeyId: readEnv('R2_ACCESS_KEY_ID'),

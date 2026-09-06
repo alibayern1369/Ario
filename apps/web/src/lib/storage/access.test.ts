@@ -4,6 +4,7 @@ import { canReadObject, canWriteObject, conversationIdFromPath, objectKey } from
 describe('object storage access', () => {
   const conv = '11111111-1111-1111-1111-111111111111';
   const user = '22222222-2222-2222-2222-222222222222';
+  const other = '33333333-3333-3333-3333-333333333333';
 
   it('scopes chat media to conversation members', () => {
     const path = `${conv}/${user}/a.jpg`;
@@ -29,6 +30,26 @@ describe('object storage access', () => {
         isConversationMember: false,
       }),
     ).toBe(false);
+  });
+
+  it('does not allow story reads by path alone without ACL', () => {
+    expect(
+      canReadObject({
+        bucket: 'stories',
+        path: `${other}/clip.mp4`,
+        userId: user,
+        isConversationMember: false,
+      }),
+    ).toBe(false);
+    expect(
+      canReadObject({
+        bucket: 'stories',
+        path: `${other}/clip.mp4`,
+        userId: user,
+        isConversationMember: false,
+        canViewStoryAuthor: true,
+      }),
+    ).toBe(true);
   });
 
   it('rejects path traversal and unknown buckets', () => {

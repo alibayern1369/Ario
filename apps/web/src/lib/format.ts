@@ -45,6 +45,17 @@ export function formatDuration(totalSeconds: number) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+export function formatLastSeen(iso: string | null | undefined) {
+  if (!iso) return 'آخرین بازدید نامشخص';
+  const d = new Date(iso);
+  const now = Date.now();
+  const diff = now - d.getTime();
+  if (diff < 60_000) return 'آخرین بازدید همین الان';
+  if (diff < 3600_000) return `آخرین بازدید ${Math.floor(diff / 60_000)} دقیقه پیش`;
+  if (diff < 86400_000) return `آخرین بازدید ${faTime.format(d)}`;
+  return `آخرین بازدید ${faDateTime.format(d)}`;
+}
+
 export function isolateLtr(value: string) {
   return `\u2066${value}\u2069`;
 }

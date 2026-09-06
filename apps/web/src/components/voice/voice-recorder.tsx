@@ -73,7 +73,10 @@ export function VoiceRecorder({
   async function send() {
     if (!blob) return;
     const file = new File([blob], `voice-${Date.now()}.webm`, { type: blob.type });
-    await uploadAndSend(conversationId, [file]);
+    await uploadAndSend(conversationId, [file], '', {
+      messageType: 'voice',
+      durationMs: seconds * 1000,
+    });
     onClose();
   }
 

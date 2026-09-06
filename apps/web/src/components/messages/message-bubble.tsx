@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useChatStore, type MessageRow } from '@/stores/chat-store';
 import { AttachmentView } from '@/components/media/attachment-view';
 import { VoicePlayer } from '@/components/voice/voice-player';
+import { isVoiceMessageType } from '@/lib/uploads';
 
 export function MessageBubble({
   message,
@@ -112,7 +113,7 @@ export function MessageBubble({
 }
 
 function MessageBody({ message }: { message: MessageRow }) {
-  if (message.type === 'voice' && message.attachments?.[0]) {
+  if (isVoiceMessageType(message.type) && message.attachments?.[0]) {
     return <VoicePlayer attachment={message.attachments[0]} />;
   }
   if (message.attachments && message.attachments.length > 0) {
@@ -145,6 +146,7 @@ function StatusIcon({ status }: { status?: MessageRow['localStatus'] }) {
   if (status === 'sending') return <Clock size={12} />;
   if (status === 'failed') return <RotateCcw size={12} />;
   if (status === 'read') return <CheckCheck size={12} />;
+  if (status === 'delivered') return <CheckCheck size={12} className="opacity-70" />;
   return <Check size={12} />;
 }
 

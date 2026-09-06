@@ -1,0 +1,13 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/expire-stories",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/publish-scheduled",
+      "schedule": "*/1 * * * *"
+    }
+  ]
+}
+
