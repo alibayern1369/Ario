@@ -83,23 +83,29 @@ export function CreateConversation({ open, onClose }: { open: boolean; onClose: 
         </label>
       ) : null}
       <div className="max-h-72 space-y-1 overflow-auto">
-        {people.map((p) => (
-          <button
-            key={p.id}
-            className="flex w-full items-center gap-3 rounded-ario px-2 py-2 hover:bg-accent-soft"
-            onClick={() => {
-              if (tab === 'dm') void startDm(p.id);
-              else setPicked((s) => (s.includes(p.id) ? s.filter((x) => x !== p.id) : [...s, p.id]));
-            }}
-          >
-            <Avatar name={p.display_name} path={p.avatar_path} size={40} />
-            <div className="flex-1 text-right">
-              <div className="font-semibold">{p.display_name}</div>
-              <div className="ltr-isolate text-xs text-muted">@{p.username}</div>
-            </div>
-            {tab !== 'dm' && picked.includes(p.id) ? <span className="text-accent">✓</span> : null}
-          </button>
-        ))}
+        {people.length === 0 ? (
+          <p className="px-2 py-6 text-center text-sm text-soft">
+            هنوز کاربر دیگری ثبت‌نام نکرده. بعد از ثبت‌نام دیگران، اینجا برای شروع گفتگو پیدایشان می‌کنید.
+          </p>
+        ) : (
+          people.map((p) => (
+            <button
+              key={p.id}
+              className="flex w-full items-center gap-3 rounded-ario px-2 py-2 hover:bg-accent-soft"
+              onClick={() => {
+                if (tab === 'dm') void startDm(p.id);
+                else setPicked((s) => (s.includes(p.id) ? s.filter((x) => x !== p.id) : [...s, p.id]));
+              }}
+            >
+              <Avatar name={p.display_name} path={p.avatar_path} size={40} />
+              <div className="flex-1 text-right">
+                <div className="font-semibold">{p.display_name}</div>
+                <div className="ltr-isolate text-xs text-muted">@{p.username}</div>
+              </div>
+              {tab !== 'dm' && picked.includes(p.id) ? <span className="text-accent">✓</span> : null}
+            </button>
+          ))
+        )}
       </div>
       {tab !== 'dm' ? (
         <button

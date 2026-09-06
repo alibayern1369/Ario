@@ -194,6 +194,7 @@ button,
   background: var(--ario-bg-elevated);
   padding: 0.7rem 0.9rem;
   color: var(--ario-ink);
+  font-size: 16px; /* iOS: <16px triggers viewport zoom on focus */
   font-size: var(--ario-text-input);
 }
 
@@ -214,6 +215,8 @@ button,
   border: 1px solid var(--ario-line);
   background: var(--ario-bg-elevated);
   padding: 0.55rem 0.85rem;
+  font-size: 16px;
+  font-size: var(--ario-text-input);
 }
 
 .ario-field-composer:focus {

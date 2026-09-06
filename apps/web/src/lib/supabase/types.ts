@@ -176,6 +176,7 @@ export type Database = {
         Returns: boolean;
       };
       record_channel_view: { Args: { msg: string }; Returns: undefined };
+      claim_bootstrap_owner: { Args: Record<string, never>; Returns: Record<string, unknown> };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

@@ -97,7 +97,7 @@
   --ario-text-meta: 0.6875rem;
   --ario-text-message: 0.9375rem;
   --ario-text-button: 0.875rem;
-  --ario-text-input: 0.9375rem;
+  --ario-text-input: 1rem; /* 16px — prevents iOS Safari zoom on focus */
 
   /* Layout chrome */
   --ario-touch: 44px;
